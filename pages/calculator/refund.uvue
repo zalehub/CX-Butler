@@ -1,0 +1,439 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">退保计算器</text>
+		</view>
+		
+		<!-- 表单区域 -->
+		<view class="form-container">
+			<view class="form-card">
+				<text class="section-title">保险信息</text>
+				
+				<!-- 保费金额输入 -->
+				<view class="form-item">
+					<text class="form-label">保单保费金额 (元)</text>
+					<input class="form-input" type="number" v-model="formData.premium" placeholder="请输入保费金额" />
+					<text class="error-text" v-if="errors.premium">{{errors.premium}}</text>
+				</view>
+				
+				<!-- 保单生效日期选择 -->
+				<view class="form-item">
+					<text class="form-label">保单生效时间</text>
+					<view class="select-container">
+						<picker mode="date" @change="startDateChange" :value="formData.startDate">
+							<view class="picker-view">
+								<text>{{formData.startDate}}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<text class="error-text" v-if="errors.startDate">{{errors.startDate}}</text>
+				</view>
+				
+				<!-- 政策百分比输入 -->
+				<view class="form-item">
+					<text class="form-label">政策百分比 (%)</text>
+					<input class="form-input" type="number" v-model="formData.policyPercentage" placeholder="请输入政策百分比(0-100)" />
+					<text class="error-text" v-if="errors.policyPercentage">{{errors.policyPercentage}}</text>
+				</view>
+				
+				<!-- 计算按钮 -->
+				<view class="button-container">
+					<button class="calculate-button" @click="calculateRefund">计算退保金额</button>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 结果展示区域 -->
+		<view class="result-container" v-if="showResult">
+			<view class="result-card">
+				<text class="section-title">计算结果</text>
+				
+				<view v-if="result.isBeforeEffective" class="result-item">
+					<text class="result-label">退保状态:</text>
+					<text class="result-value">保单未生效</text>
+				</view>
+				
+				<view v-if="!result.isBeforeEffective" class="result-item">
+					<text class="result-label">已使用天数:</text>
+					<text class="result-value">{{result.elapsedDays}}天</text>
+				</view>
+				
+				<view v-if="!result.isBeforeEffective" class="result-item">
+					<text class="result-label">剩余天数:</text>
+					<text class="result-value">{{result.remainingDays}}天</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">退保保费:</text>
+					<text class="result-value">{{result.refundPremium}}元</text>
+				</view>
+				
+				<view class="result-item highlight">
+					<text class="result-label">收回佣金:</text>
+					<text class="result-value highlight">{{result.recoveredCommission}}元</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 退保规则说明 -->
+		<view class="rules-container">
+			<view class="rules-card">
+				<text class="section-title">退保规则说明</text>
+				<text class="rules-text">1. 未生效退保：保单未生效时，退保保费 = 总保费 × 97%，收回佣金 = 退保保费 ÷ 1.06 × 政策百分比</text>
+				<text class="rules-text">2. 已生效退保：退保保费 = 总保费 - (总保费 ÷ 365 × 已生效天数)，收回佣金 = 退保保费 ÷ 1.06 × 政策百分比</text>
+				<text class="rules-text">3. 本计算器适合车险交强险、商业险及1年期非车险计算，不含一年期以上寿险产品。</text>
+				<text class="rules-text">4. 本计算结果仅供参考，实际退保金额以保险公司最终核算为准。</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '退保计算器',
+				// 表单数据
+				formData: {
+					premium: '',
+					startDate: this.formatDate(new Date()),
+					policyPercentage: ''
+				},
+				// 错误信息
+				errors: {
+					premium: '',
+					startDate: '',
+					policyPercentage: ''
+				},
+				// 计算结果
+				result: {
+					isBeforeEffective: false,
+					elapsedDays: 0,
+					remainingDays: 0,
+					refundPremium: 0,
+					recoveredCommission: 0
+				},
+				// 是否显示结果
+				showResult: false
+			}
+		},
+		onLoad() {
+			console.log('退保计算器页面加载')
+		},
+		methods: {
+			// 格式化日期为YYYY-MM-DD
+			formatDate(date) {
+				const year = date.getFullYear()
+				const month = (date.getMonth() + 1).toString().padStart(2, '0')
+				const day = date.getDate().toString().padStart(2, '0')
+				return `${year}-${month}-${day}`
+			},
+			
+			// 保单生效日期变更
+			startDateChange(e) {
+				// 获取选择器返回的日期值
+				const dateValue = e.detail.value
+				// 确保日期值有效
+				if (dateValue) {
+					// 直接使用选择器返回的值，它已经是YYYY-MM-DD格式
+					this.formData.startDate = dateValue
+				} else {
+					// 如果没有选择日期，使用当前日期
+					this.formData.startDate = this.formatDate(new Date())
+				}
+				// 清除错误提示
+				this.errors.startDate = ''
+				console.log('日期已更新:', this.formData.startDate)
+			},
+			
+			// 清除所有错误提示
+			clearErrors() {
+				this.errors = {
+					premium: '',
+					startDate: '',
+					policyPercentage: ''
+				}
+			},
+			
+			// 验证输入
+			validateInputs() {
+				let isValid = true
+				this.clearErrors()
+				
+				// 验证保费
+				const premium = parseFloat(this.formData.premium)
+				if (isNaN(premium) || premium <= 0) {
+					this.errors.premium = '请输入正确的保单保费金额'
+					isValid = false
+				}
+				
+				// 验证生效日期
+				const startDate = new Date(this.formData.startDate)
+				if (isNaN(startDate.getTime())) {
+					this.errors.startDate = '请选择正确的保单生效时间'
+					isValid = false
+				}
+				
+				// 验证政策百分比
+				const policyPercentage = parseFloat(this.formData.policyPercentage)
+				if (isNaN(policyPercentage) || policyPercentage < 0 || policyPercentage > 100) {
+					this.errors.policyPercentage = '请输入正确的政策（0-100 之间的数字）'
+					isValid = false
+				}
+				
+				return isValid
+			},
+			
+			// 计算退保金额
+			calculateRefund() {
+				// 验证输入
+				if (!this.validateInputs()) {
+					return
+				}
+				
+				// 获取输入值
+				const premium = parseFloat(this.formData.premium)
+				const startDate = new Date(this.formData.startDate)
+				const policyPercentage = parseFloat(this.formData.policyPercentage)
+				
+				// 获取当前日期
+				const currentDate = new Date()
+				
+				// 判断生效日期是否大于当前日期（未生效）
+				if (startDate > currentDate) {
+					// 未生效的情况
+					const surrenderPremium = premium * 0.97
+					const recoveredCommission = (surrenderPremium / 1.06) * (policyPercentage / 100)
+					
+					// 更新结果
+					this.result = {
+						isBeforeEffective: true,
+						elapsedDays: 0,
+						remainingDays: 0,
+						refundPremium: surrenderPremium.toFixed(2),
+						recoveredCommission: recoveredCommission.toFixed(2)
+					}
+				} else {
+					// 已生效的情况
+					// 计算已生效天数
+					const elapsedDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24))
+					const remainingDays = 365 - elapsedDays - 1
+					
+					// 计算退保保费
+					let refundPremium
+					if (remainingDays <= 0) {
+						// 超过一年，直接扣除3%手续费
+						refundPremium = premium - (premium * 0.03)
+					} else {
+						// 未超过一年，按天数计算
+						refundPremium = premium - (premium / 365 * (elapsedDays + 1))
+					}
+					
+					// 计算收回佣金
+					const recoveredCommission = refundPremium / 1.06 * (policyPercentage / 100)
+					
+					// 更新结果
+					this.result = {
+						isBeforeEffective: false,
+						elapsedDays: elapsedDays,
+						remainingDays: remainingDays > 0 ? remainingDays : 0,
+						refundPremium: refundPremium.toFixed(2),
+						recoveredCommission: recoveredCommission.toFixed(2)
+					}
+				}
+				
+				// 显示结果
+				this.showResult = true
+				
+				// 滚动到结果区域
+				setTimeout(() => {
+					uni.pageScrollTo({
+						selector: '.result-container',
+						duration: 300
+					})
+				}, 100)
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		padding-bottom: 50px;
+		background-color: #F5F7FA;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 表单区域 */
+	.form-container {
+		padding: 15px;
+	}
+	
+	.form-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+	}
+	
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.form-item {
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-input {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 6px;
+		padding: 0 10px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.select-container {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 6px;
+		background-color: #F8F8F8;
+		overflow: hidden;
+	}
+	
+	.picker-view {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		height: 40px;
+		padding: 0 10px;
+	}
+	
+	.picker-arrow {
+		font-size: 12px;
+		color: #999999;
+	}
+	
+	.button-container {
+		margin-top: 20px;
+	}
+	
+	.calculate-button {
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		height: 45px;
+		line-height: 45px;
+		border-radius: 22.5px;
+		box-shadow: 0 6px 12px rgba(30,144,255,0.3);
+		transition: all 0.3s;
+	}
+	
+	.calculate-button:active {
+		transform: scale(0.95);
+		box-shadow: 0 3px 6px rgba(30,144,255,0.2);
+	}
+	
+	/* 结果展示区域 */
+	.result-container {
+		padding: 15px;
+	}
+	
+	.result-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+		animation: fadeIn 0.5s ease-out;
+	}
+	
+	@keyframes fadeIn {
+		from { opacity: 0; transform: translateY(20px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+	
+	.result-item {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 10px;
+		padding: 8px 0;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.result-label {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.result-value {
+		font-size: 14px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	.highlight {
+		color: #FF6600;
+		font-size: 16px;
+	}
+	
+	/* 退保规则说明 */
+	.rules-container {
+		padding: 15px;
+	}
+	
+	.rules-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+	}
+	
+	.rules-text {
+		font-size: 13px;
+		color: #666666;
+		line-height: 20px;
+		margin-bottom: 8px;
+	}
+	
+	/* 错误提示样式 */
+	.error-text {
+		font-size: 12px;
+		color: #FF3B30;
+		margin-top: 5px;
+	}
+</style>

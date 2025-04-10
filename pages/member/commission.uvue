@@ -1,0 +1,624 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">佣金管理</text>
+		</view>
+		
+		<!-- 佣金概览 -->
+		<view class="balance-card">
+			<view class="balance-header">
+				<text class="balance-title">佣金余额 (元)</text>
+				<button class="withdraw-btn" @click="showWithdrawModal">提现</button>
+			</view>
+			<text class="balance-amount">{{commissionData.balance}}</text>
+			<view class="balance-stats">
+				<view class="stat-item">
+					<text class="stat-value">{{commissionData.monthCommission}}</text>
+					<text class="stat-label">本月佣金</text>
+				</view>
+				<view class="stat-item">
+					<text class="stat-value">{{commissionData.totalCommission}}</text>
+					<text class="stat-label">累计佣金</text>
+				</view>
+				<view class="stat-item">
+					<text class="stat-value">{{commissionData.pendingCommission}}</text>
+					<text class="stat-label">待结算</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 佣金明细 -->
+		<view class="commission-details">
+			<view class="tab-header">
+				<view class="tab-item" :class="{active: activeTab === 'all'}" @click="switchTab('all')">
+					<text class="tab-text">全部</text>
+				</view>
+				<view class="tab-item" :class="{active: activeTab === 'income'}" @click="switchTab('income')">
+					<text class="tab-text">收入</text>
+				</view>
+				<view class="tab-item" :class="{active: activeTab === 'withdraw'}" @click="switchTab('withdraw')">
+					<text class="tab-text">提现</text>
+				</view>
+			</view>
+			
+			<view class="details-list">
+				<view v-if="filteredRecords.length === 0" class="empty-state">
+					<text class="empty-text">暂无佣金记录</text>
+				</view>
+				
+				<view v-for="(record, index) in filteredRecords" :key="index" class="record-item">
+					<view class="record-left">
+						<text class="record-title">{{record.title}}</text>
+						<text class="record-time">{{record.time}}</text>
+					</view>
+					<view class="record-right">
+						<text class="record-amount" :class="{income: record.type === 'income', withdraw: record.type === 'withdraw'}">{{record.type === 'income' ? '+' : '-'}}{{record.amount}}</text>
+						<text class="record-status" v-if="record.status">{{record.status}}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 提现规则 -->
+		<view class="rules-section">
+			<text class="section-title">提现规则</text>
+			<view class="rules-content">
+				<text class="rule-item">1. 佣金结算周期为每月1日，结算上月佣金。</text>
+				<text class="rule-item">2. 提现金额最低100元，最高5000元/次。</text>
+				<text class="rule-item">3. 提现申请提交后，1-3个工作日内到账。</text>
+				<text class="rule-item">4. 提现需绑定本人实名认证的银行卡或支付宝账户。</text>
+				<text class="rule-item">5. 如有疑问，请联系客服。</text>
+			</view>
+		</view>
+		
+		<!-- 提现弹窗 -->
+		<view class="modal" v-if="showModal">
+			<view class="modal-mask" @click="hideWithdrawModal"></view>
+			<view class="modal-content">
+				<view class="modal-header">
+					<text class="modal-title">佣金提现</text>
+					<text class="modal-close" @click="hideWithdrawModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">提现金额</text>
+						<input class="form-input" type="number" v-model="withdrawForm.amount" placeholder="请输入提现金额" />
+						<text class="form-tip">可提现金额: {{commissionData.balance}}元</text>
+					</view>
+					<view class="form-item">
+						<text class="form-label">提现方式</text>
+						<view class="withdraw-methods">
+							<view class="method-item" :class="{active: withdrawForm.method === 'alipay'}" @click="selectMethod('alipay')">
+								<text class="method-text">支付宝</text>
+							</view>
+							<view class="method-item" :class="{active: withdrawForm.method === 'wechat'}" @click="selectMethod('wechat')">
+								<text class="method-text">微信</text>
+							</view>
+							<view class="method-item" :class="{active: withdrawForm.method === 'bank'}" @click="selectMethod('bank')">
+								<text class="method-text">银行卡</text>
+							</view>
+						</view>
+					</view>
+					<view class="form-item" v-if="withdrawForm.method === 'bank'">
+						<text class="form-label">银行卡信息</text>
+						<input class="form-input" v-model="withdrawForm.bankInfo" placeholder="请输入银行卡号" />
+					</view>
+					<view class="form-item" v-if="withdrawForm.method === 'alipay'">
+						<text class="form-label">支付宝账号</text>
+						<input class="form-input" v-model="withdrawForm.alipayAccount" placeholder="请输入支付宝账号" />
+					</view>
+					<view class="form-item" v-if="withdrawForm.method === 'wechat'">
+						<text class="form-label">微信实名信息</text>
+						<input class="form-input" v-model="withdrawForm.wechatName" placeholder="请输入微信实名" />
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="hideWithdrawModal">取消</button>
+					<button class="confirm-btn" @click="submitWithdraw">确认提现</button>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '佣金管理',
+				// 当前激活的标签
+				activeTab: 'all',
+				// 佣金数据
+				commissionData: {
+					balance: 0,
+					monthCommission: 0,
+					totalCommission: 0,
+					pendingCommission: 0
+				},
+				// 佣金记录
+				commissionRecords: [],
+				// 提现表单
+				withdrawForm: {
+					amount: '',
+					method: 'alipay',
+					bankInfo: '',
+					alipayAccount: '',
+					wechatName: ''
+				},
+				// 是否显示提现弹窗
+				showModal: false
+			}
+		},
+		computed: {
+			// 根据当前标签筛选记录
+			filteredRecords() {
+				if (this.activeTab === 'all') {
+					return this.commissionRecords
+				} else if (this.activeTab === 'income') {
+					return this.commissionRecords.filter(record => record.type === 'income')
+				} else {
+					return this.commissionRecords.filter(record => record.type === 'withdraw')
+				}
+			}
+		},
+		onLoad() {
+			console.log('佣金管理页面加载')
+			// 加载佣金数据
+			this.loadCommissionData()
+		},
+		methods: {
+			// 加载佣金数据
+			loadCommissionData() {
+				try {
+					// 尝试从本地存储获取用户信息，确保用户已登录
+					const userInfoStr = uni.getStorageSync('userInfo')
+					if (!userInfoStr) {
+						// 用户未登录，显示提示并跳转到登录页面
+						uni.showToast({
+							title: '请先登录',
+							icon: 'none'
+						})
+						setTimeout(() => {
+							uni.navigateTo({
+								url: '/pages/member/login'
+							})
+						}, 1500)
+						return
+					}
+					
+					// 解析用户信息
+					const userInfo = JSON.parse(userInfoStr)
+					
+					// 在实际应用中，这里应该调用API获取佣金数据
+					// 由于目前是模拟数据，我们直接使用本地数据
+					// 实际开发中，应该替换为网络请求，例如：
+					/*
+					uni.request({
+						url: 'https://api.example.com/commission',
+						method: 'GET',
+						header: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json; charset=UTF-8'
+						},
+						success: (res) => {
+							if (res.statusCode === 200 && res.data) {
+								this.commissionData = res.data.summary
+								this.commissionRecords = res.data.records
+							}
+						},
+						fail: (err) => {
+							console.error('获取佣金数据失败', err)
+							uni.showToast({
+								title: '连接服务器异常，请稍后再试',
+								icon: 'none'
+							})
+						}
+					})
+					*/
+					
+					// 模拟佣金数据 - 使用用户信息中的余额
+					const mockCommissionData = {
+						balance: userInfo.balance || 358.65,
+						monthCommission: 358.65,
+						totalCommission: 1286.42,
+						pendingCommission: 125.80
+					}
+					
+					// 模拟佣金记录
+					const mockRecords = [
+						{
+							type: 'income',
+							title: '直属成员-李四-车险购买',
+							time: '2023-10-15 14:30',
+							amount: '156.80'
+						},
+						{
+							type: 'income',
+							title: '直属成员-王五-健康险购买',
+							time: '2023-10-10 09:15',
+							amount: '89.90'
+						},
+						{
+							type: 'income',
+							title: '间接成员-钱七-车险购买',
+							time: '2023-10-05 16:45',
+							amount: '65.30'
+						},
+						{
+							type: 'withdraw',
+							title: '佣金提现',
+							time: '2023-09-20 10:30',
+							amount: '500.00',
+							status: '已到账'
+						},
+						{
+							type: 'income',
+							title: '直属成员-赵六-团险购买',
+							time: '2023-09-15 11:20',
+							amount: '120.50'
+						},
+						{
+							type: 'withdraw',
+							title: '佣金提现',
+							time: '2023-08-25 14:10',
+							amount: '300.00',
+							status: '已到账'
+						}
+					]
+					
+					// 更新数据
+					this.commissionData = mockCommissionData
+					this.commissionRecords = mockRecords
+				} catch (e) {
+					console.error('加载佣金数据失败', e)
+					// 显示友好的错误提示
+					uni.showToast({
+						title: '数据加载异常，请稍后再试',
+						icon: 'none',
+						duration: 2000
+					})
+					
+					// 设置默认数据，防止页面显示异常
+					this.commissionData = {
+						balance: 0,
+						monthCommission: 0,
+						totalCommission: 0,
+						pendingCommission: 0
+					}
+					this.commissionRecords = []
+				}
+			},
+			
+			// 切换标签
+			switchTab(tab) {
+				this.activeTab = tab
+			},
+			
+			// 显示提现弹窗
+			showWithdrawModal() {
+				this.showModal = true
+			},
+			
+			// 隐藏提现弹窗
+			hideWithdrawModal() {
+				this.showModal = false
+				// 重置表单
+				this.withdrawForm = {
+					amount: '',
+					method: 'alipay',
+					bankInfo: '',
+					alipayAccount: '',
+					wechatName: ''
+				}
+			},
+			
+			// 选择提现方式
+			selectMethod(method) {
+				this.withdrawForm.method = method
+			},
+			
+			// 提交提现申请
+			submitWithdraw() {
+				try {
+					// 验证提现金额
+					const amount = parseFloat(this.withdrawForm.amount)
+					if (isNaN(amount) || amount <= 0) {
+						uni.showToast({
+							title: '请输入正确的提现金额',
+							icon: 'none'
+						})
+						return
+					}
+					
+					if (amount < 100) {
+						uni.showToast({
+							title: '提现金额不能低于100元',
+							icon: 'none'
+						})
+						return
+					}
+					
+					if (amount > this.commissionData.balance) {
+						uni.showToast({
+							title: '提现金额不能超过可提现余额',
+							icon: 'none'
+						})
+						return
+					}
+					
+					// 验证提现方式相关信息
+					if (this.withdrawForm.method === 'bank' && !this.withdrawForm.bankInfo) {
+						uni.showToast({
+							title: '请输入银行卡信息',
+							icon: 'none'
+						})
+						return
+					}
+					
+					if (this.withdrawForm.method === 'alipay' && !this.withdrawForm.alipayAccount) {
+						uni.showToast({
+							title: '请输入支付宝账号',
+							icon: 'none'
+						})
+						return
+					}
+					
+					if (this.withdrawForm.method === 'wechat' && !this.withdrawForm.wechatName) {
+						uni.showToast({
+							title: '请输入微信实名信息',
+							icon: 'none'
+						})
+						return
+					}
+					
+					// 模拟提现申请
+					uni.showLoading({
+						title: '提交中...'
+					})
+					
+					// 实际应用中这里应该调用API提交提现申请
+					// 示例代码（实际开发时应替换为真实API调用）：
+					/*
+					uni.request({
+						url: 'https://api.example.com/withdraw',
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json; charset=UTF-8'
+						},
+						data: {
+							amount: amount,
+							method: this.withdrawForm.method,
+							accountInfo: this.withdrawForm.method === 'bank' ? this.withdrawForm.bankInfo : 
+										this.withdrawForm.method === 'alipay' ? this.withdrawForm.alipayAccount : 
+										this.withdrawForm.wechatName
+						},
+						success: (res) => {
+							if (res.statusCode === 200 && res.data && res.data.success) {
+								// 更新佣金余额
+								this.commissionData.balance -= amount
+								
+								// 添加提现记录
+								const now = new Date()
+								const timeStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+								
+								this.commissionRecords.unshift({
+									type: 'withdraw',
+									title: '佣金提现',
+									time: timeStr,
+									amount: amount.toFixed(2),
+									status: '处理中'
+								})
+								
+								// 隐藏弹窗
+								this.hideWithdrawModal()
+								
+								// 提示成功
+								uni.showToast({
+									title: '提现申请已提交',
+									icon: 'success'
+								})
+							} else {
+								throw new Error('提现申请失败：' + (res.data && res.data.message ? res.data.message : '未知错误'))
+							}
+						},
+						fail: (err) => {
+							throw err
+						},
+						complete: () => {
+							uni.hideLoading()
+						}
+					})
+					*/
+					
+					// 模拟成功响应
+					setTimeout(() => {
+						uni.hideLoading()
+						
+						// 更新佣金余额
+						this.commissionData.balance -= amount
+						
+						// 添加提现记录
+						const now = new Date()
+						const timeStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+						
+						this.commissionRecords.unshift({
+							type: 'withdraw',
+							title: '佣金提现',
+							time: timeStr,
+							amount: amount.toFixed(2),
+							status: '处理中'
+						})
+						
+						// 隐藏弹窗
+						this.hideWithdrawModal()
+						
+						// 提示成功
+						uni.showToast({
+							title: '提现申请已提交',
+							icon: 'success'
+						})
+					}, 1500)
+				} catch (e) {
+					console.error('提现申请失败', e)
+					uni.hideLoading()
+					uni.showToast({
+						title: '提现申请失败，请稍后再试',
+						icon: 'none',
+						duration: 2000
+					})
+				}
+			}
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 佣金余额卡片 */
+	.balance-card {
+		margin: 15px;
+		background-color: #1E90FF;
+		border-radius: 12px;
+		padding: 20px;
+		box-shadow: 0 4px 12px rgba(30,144,255,0.3);
+	}
+	
+	.balance-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+	
+	.balance-title {
+		color: #FFFFFF;
+		font-size: 14px;
+		opacity: 0.9;
+	}
+	
+	.withdraw-btn {
+		background-color: #FFFFFF;
+		color: #1E90FF;
+		font-size: 12px;
+		padding: 5px 15px;
+		border-radius: 15px;
+		height: 30px;
+		line-height: 30px;
+	}
+	
+	.balance-amount {
+		color: #FFFFFF;
+		font-size: 32px;
+		font-weight: bold;
+		margin-bottom: 20px;
+	}
+	
+	.balance-stats {
+		flex-direction: row;
+		justify-content: space-between;
+		padding-top: 15px;
+		border-top-width: 1px;
+		border-top-color: rgba(255,255,255,0.2);
+	}
+	
+	.stat-item {
+		align-items: center;
+	}
+	
+	.stat-value {
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		margin-bottom: 5px;
+	}
+	
+	.stat-label {
+		color: #FFFFFF;
+		font-size: 12px;
+		opacity: 0.8;
+	}
+	
+	/* 佣金明细 */
+	.commission-details {
+		margin: 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.tab-header {
+		flex-direction: row;
+		height: 45px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.tab-item {
+		flex: 1;
+		height: 45px;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.tab-item.active {
+		border-bottom-width: 2px;
+		border-bottom-color: #1E90FF;
+	}
+	
+	.tab-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.tab-item.active .tab-text {
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	.details-list {
+		padding: 15px;
+	}
+	
+	.empty-state {
+		align-items: center;
+		padding: 30px 0;
+	}
+	
+	.empty-text {
+		font-size: 14px;
+		color: #999999;
+	}
+	
+	.record-item {
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 15px 0;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.record-item:last-child {
+		border-bottom-width: 0;
+	}

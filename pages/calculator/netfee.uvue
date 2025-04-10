@@ -1,0 +1,353 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">净费计算器</text>
+		</view>
+		
+		<view class="content">
+			<view class="calculator-card">
+				<text class="card-title">保险净费计算</text>
+				<text class="card-desc">计算保险产品的实际成本</text>
+				
+				<view class="form-section">
+					<view class="form-item">
+						<text class="form-label">保险类型</text>
+						<picker class="form-picker" :range="insuranceTypes" @change="onTypeChange">
+							<view class="picker-value">
+								<text>{{insuranceTypes[selectedTypeIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">保险期限</text>
+						<picker class="form-picker" :range="insurancePeriods" @change="onPeriodChange">
+							<view class="picker-value">
+								<text>{{insurancePeriods[selectedPeriodIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">保险金额 (元)</text>
+						<input class="form-input" type="number" v-model="insuranceAmount" placeholder="请输入保险金额" />
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">保费 (元)</text>
+						<input class="form-input" type="number" v-model="premium" placeholder="请输入保费" />
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">佣金比例 (%)</text>
+						<input class="form-input" type="number" v-model="commissionRate" placeholder="请输入佣金比例" />
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">管理费比例 (%)</text>
+						<input class="form-input" type="number" v-model="managementFeeRate" placeholder="请输入管理费比例" />
+					</view>
+				</view>
+				
+				<button class="calculate-btn" type="primary" @click="calculateNetFee">计算净费</button>
+			</view>
+			
+			<view class="result-card" v-if="showResult">
+				<text class="result-title">计算结果</text>
+				
+				<view class="result-item">
+					<text class="result-label">保费总额：</text>
+					<text class="result-value">{{premium}} 元</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">佣金金额：</text>
+					<text class="result-value">{{commissionAmount}} 元</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">管理费：</text>
+					<text class="result-value">{{managementFee}} 元</text>
+				</view>
+				
+				<view class="result-item highlight">
+					<text class="result-label">净费金额：</text>
+					<text class="result-value highlight">{{netFee}} 元</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">净费率：</text>
+					<text class="result-value">{{netFeeRate}}%</text>
+				</view>
+				
+				<view class="result-note">
+					<text class="note-text">注：净费 = 保费 - 佣金 - 管理费</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '净费计算器',
+				insuranceTypes: ['车险', '健康险', '寿险', '财产险', '责任险'],
+				selectedTypeIndex: 0,
+				insurancePeriods: ['1年', '2年', '3年', '5年', '10年', '20年', '30年', '终身'],
+				selectedPeriodIndex: 0,
+				insuranceAmount: '',
+				premium: '',
+				commissionRate: '',
+				managementFeeRate: '',
+				showResult: false,
+				commissionAmount: 0,
+				managementFee: 0,
+				netFee: 0,
+				netFeeRate: 0
+			}
+		},
+		onLoad() {
+			console.log('净费计算器页面加载')
+		},
+		methods: {
+			// 保险类型变化
+			onTypeChange(e) {
+				this.selectedTypeIndex = e.detail.value;
+				// 根据保险类型预设佣金比例
+				switch(this.selectedTypeIndex) {
+					case 0: // 车险
+						this.commissionRate = '10';
+						this.managementFeeRate = '5';
+						break;
+					case 1: // 健康险
+						this.commissionRate = '15';
+						this.managementFeeRate = '8';
+						break;
+					case 2: // 寿险
+						this.commissionRate = '20';
+						this.managementFeeRate = '10';
+						break;
+					case 3: // 财产险
+						this.commissionRate = '12';
+						this.managementFeeRate = '6';
+						break;
+					case 4: // 责任险
+						this.commissionRate = '8';
+						this.managementFeeRate = '4';
+						break;
+				}
+			},
+			
+			// 保险期限变化
+			onPeriodChange(e) {
+				this.selectedPeriodIndex = e.detail.value;
+			},
+			
+			// 计算净费
+			calculateNetFee() {
+				// 验证输入
+				if (!this.premium || !this.commissionRate || !this.managementFeeRate) {
+					uni.showToast({
+						title: '请填写完整信息',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 转换为数字
+				const premium = parseFloat(this.premium);
+				const commissionRate = parseFloat(this.commissionRate);
+				const managementFeeRate = parseFloat(this.managementFeeRate);
+				
+				// 计算佣金和管理费
+				this.commissionAmount = (premium * commissionRate / 100).toFixed(2);
+				this.managementFee = (premium * managementFeeRate / 100).toFixed(2);
+				
+				// 计算净费
+				this.netFee = (premium - this.commissionAmount - this.managementFee).toFixed(2);
+				
+				// 计算净费率
+				if (this.insuranceAmount) {
+					const amount = parseFloat(this.insuranceAmount);
+					this.netFeeRate = ((this.netFee / amount) * 100).toFixed(2);
+				} else {
+					this.netFeeRate = ((this.netFee / premium) * 100).toFixed(2);
+				}
+				
+				// 显示结果
+				this.showResult = true;
+				
+				console.log('计算结果:', {
+					保费: premium,
+					佣金: this.commissionAmount,
+					管理费: this.managementFee,
+					净费: this.netFee,
+					净费率: this.netFeeRate
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	/* 计算器卡片样式 */
+	.calculator-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.card-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.card-desc {
+		font-size: 14px;
+		color: #999999;
+		margin-bottom: 20px;
+	}
+	
+	.form-section {
+		flex-direction: column;
+		margin-bottom: 20px;
+	}
+	
+	.form-item {
+		flex-direction: column;
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-input {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		padding: 0 10px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.form-picker {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		background-color: #F8F8F8;
+		justify-content: center;
+	}
+	
+	.picker-value {
+		height: 40px;
+		line-height: 40px;
+		padding: 0 10px;
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	.calculate-btn {
+		height: 45px;
+		background-color: #1E90FF;
+		border-radius: 22.5px;
+		font-size: 16px;
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+	
+	/* 结果卡片样式 */
+	.result-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.result-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.result-item {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.result-item.highlight {
+		border-bottom-width: 0;
+		background-color: #F0F8FF;
+		padding: 10px;
+		border-radius: 5px;
+		margin: 10px 0;
+	}
+	
+	.result-label {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.result-value {
+		font-size: 14px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	.result-value.highlight {
+		color: #1E90FF;
+		font-size: 16px;
+	}
+	
+	.result-note {
+		margin-top: 15px;
+		padding-top: 10px;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+	}
+	
+	.note-text {
+		font-size: 12px;
+		color: #999999;
+		line-height: 1.5;
+	}
+</style>

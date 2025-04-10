@@ -1,0 +1,545 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">车船税计算器</text>
+		</view>
+		
+		<view class="content">
+			<view class="calculator-card">
+				<text class="card-title">车船税计算</text>
+				<text class="card-desc">根据车辆类型和排量计算应缴纳的车船税</text>
+				
+				<view class="form-section">
+					<view class="form-item">
+						<text class="form-label">车辆类型</text>
+						<picker class="form-picker" :range="vehicleTypes" @change="onVehicleTypeChange">
+							<view class="picker-value">
+								<text>{{vehicleTypes[selectedVehicleTypeIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item" v-if="showDisplacement">
+						<text class="form-label">排量(L)</text>
+						<picker class="form-picker" :range="displacementRanges" @change="onDisplacementChange">
+							<view class="picker-value">
+								<text>{{displacementRanges[selectedDisplacementIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item" v-if="showTonnage">
+						<text class="form-label">吨位(吨)</text>
+						<picker class="form-picker" :range="tonnageRanges" @change="onTonnageChange">
+							<view class="picker-value">
+								<text>{{tonnageRanges[selectedTonnageIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item" v-if="showPassengerCapacity">
+						<text class="form-label">座位数(个)</text>
+						<picker class="form-picker" :range="passengerCapacities" @change="onPassengerCapacityChange">
+							<view class="picker-value">
+								<text>{{passengerCapacities[selectedPassengerCapacityIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">是否新能源车</text>
+						<view class="radio-group">
+							<view class="radio-item" @click="isNewEnergy = true">
+								<view class="radio-button" :class="{active: isNewEnergy}"></view>
+								<text class="radio-label">是</text>
+							</view>
+							<view class="radio-item" @click="isNewEnergy = false">
+								<view class="radio-button" :class="{active: !isNewEnergy}"></view>
+								<text class="radio-label">否</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">缴税年限</text>
+						<picker class="form-picker" :range="taxYears" @change="onTaxYearChange">
+							<view class="picker-value">
+								<text>{{taxYears[selectedTaxYearIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+				</view>
+				
+				<button class="calculate-btn" type="primary" @click="calculateTax">计算车船税</button>
+			</view>
+			
+			<view class="result-card" v-if="showResult">
+				<text class="result-title">计算结果</text>
+				
+				<view class="result-item">
+					<text class="result-label">车辆类型：</text>
+					<text class="result-value">{{vehicleTypes[selectedVehicleTypeIndex]}}</text>
+				</view>
+				
+				<view class="result-item" v-if="showDisplacement">
+					<text class="result-label">排量：</text>
+					<text class="result-value">{{displacementRanges[selectedDisplacementIndex]}}</text>
+				</view>
+				
+				<view class="result-item" v-if="showTonnage">
+					<text class="result-label">吨位：</text>
+					<text class="result-value">{{tonnageRanges[selectedTonnageIndex]}}</text>
+				</view>
+				
+				<view class="result-item" v-if="showPassengerCapacity">
+					<text class="result-label">座位数：</text>
+					<text class="result-value">{{passengerCapacities[selectedPassengerCapacityIndex]}}</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">新能源车：</text>
+					<text class="result-value">{{isNewEnergy ? '是' : '否'}}</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">缴税年限：</text>
+					<text class="result-value">{{taxYears[selectedTaxYearIndex]}}</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">年税额：</text>
+					<text class="result-value">{{annualTax}} 元</text>
+				</view>
+				
+				<view class="result-item highlight">
+					<text class="result-label">应缴税额：</text>
+					<text class="result-value highlight">{{totalTax}} 元</text>
+				</view>
+				
+				<view class="tax-note">
+					<text class="note-title">缴税须知：</text>
+					<text class="note-text">1. 车船税按年征收，可一次缴纳多年</text>
+					<text class="note-text">2. 新能源车可享受减免政策</text>
+					<text class="note-text">3. 缴纳车船税是机动车年检的必要条件</text>
+					<text class="note-text">4. 本计算结果仅供参考，实际税额以税务机关核定为准</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '车船税计算器',
+				vehicleTypes: ['小型客车', '大型客车', '货车', '摩托车', '挂车'],
+				selectedVehicleTypeIndex: 0,
+				displacementRanges: ['1.0L以下', '1.0-1.6L', '1.6-2.0L', '2.0-2.5L', '2.5-3.0L', '3.0-4.0L', '4.0L以上'],
+				selectedDisplacementIndex: 0,
+				tonnageRanges: ['1吨以下', '1-3吨', '3-5吨', '5-10吨', '10吨以上'],
+				selectedTonnageIndex: 0,
+				passengerCapacities: ['9座以下', '10-20座', '20-30座', '30座以上'],
+				selectedPassengerCapacityIndex: 0,
+				isNewEnergy: false,
+				taxYears: ['1年', '2年', '3年', '4年', '5年'],
+				selectedTaxYearIndex: 0,
+				showDisplacement: true,
+				showTonnage: false,
+				showPassengerCapacity: false,
+				showResult: false,
+				annualTax: 0,
+				totalTax: 0
+			}
+		},
+		onLoad() {
+			console.log('车船税计算器页面加载')
+		},
+		methods: {
+			// 车辆类型变化
+			onVehicleTypeChange(e) {
+				this.selectedVehicleTypeIndex = e.detail.value;
+				
+				// 根据车辆类型显示不同的参数选择
+				switch(parseInt(this.selectedVehicleTypeIndex)) {
+					case 0: // 小型客车
+						this.showDisplacement = true;
+						this.showTonnage = false;
+						this.showPassengerCapacity = false;
+						break;
+					case 1: // 大型客车
+						this.showDisplacement = false;
+						this.showTonnage = false;
+						this.showPassengerCapacity = true;
+						break;
+					case 2: // 货车
+						this.showDisplacement = false;
+						this.showTonnage = true;
+						this.showPassengerCapacity = false;
+						break;
+					case 3: // 摩托车
+						this.showDisplacement = true;
+						this.showTonnage = false;
+						this.showPassengerCapacity = false;
+						break;
+					case 4: // 挂车
+						this.showDisplacement = false;
+						this.showTonnage = true;
+						this.showPassengerCapacity = false;
+						break;
+				}
+			},
+			
+			// 排量变化
+			onDisplacementChange(e) {
+				this.selectedDisplacementIndex = e.detail.value;
+			},
+			
+			// 吨位变化
+			onTonnageChange(e) {
+				this.selectedTonnageIndex = e.detail.value;
+			},
+			
+			// 座位数变化
+			onPassengerCapacityChange(e) {
+				this.selectedPassengerCapacityIndex = e.detail.value;
+			},
+			
+			// 缴税年限变化
+			onTaxYearChange(e) {
+				this.selectedTaxYearIndex = e.detail.value;
+			},
+			
+			// 计算车船税
+			calculateTax() {
+				// 基础年税额
+				let baseTax = 0;
+				
+				// 根据车辆类型和参数计算基础税额
+				switch(parseInt(this.selectedVehicleTypeIndex)) {
+					case 0: // 小型客车 - 按排量计税
+						switch(parseInt(this.selectedDisplacementIndex)) {
+							case 0: // 1.0L以下
+								baseTax = 180;
+								break;
+							case 1: // 1.0-1.6L
+								baseTax = 300;
+								break;
+							case 2: // 1.6-2.0L
+								baseTax = 360;
+								break;
+							case 3: // 2.0-2.5L
+								baseTax = 660;
+								break;
+							case 4: // 2.5-3.0L
+								baseTax = 1200;
+								break;
+							case 5: // 3.0-4.0L
+								baseTax = 2400;
+								break;
+							case 6: // 4.0L以上
+								baseTax = 3600;
+								break;
+						}
+						break;
+						
+					case 1: // 大型客车 - 按座位数计税
+						switch(parseInt(this.selectedPassengerCapacityIndex)) {
+							case 0: // 9座以下
+								baseTax = 480;
+								break;
+							case 1: // 10-20座
+								baseTax = 720;
+								break;
+							case 2: // 20-30座
+								baseTax = 1200;
+								break;
+							case 3: // 30座以上
+								baseTax = 1800;
+								break;
+						}
+						break;
+						
+					case 2: // 货车 - 按吨位计税
+						switch(parseInt(this.selectedTonnageIndex)) {
+							case 0: // 1吨以下
+								baseTax = 120;
+								break;
+							case 1: // 1-3吨
+								baseTax = 180;
+								break;
+							case 2: // 3-5吨
+								baseTax = 360;
+								break;
+							case 3: // 5-10吨
+								baseTax = 720;
+								break;
+							case 4: // 10吨以上
+								baseTax = 1200;
+								break;
+						}
+						break;
+						
+					case 3: // 摩托车 - 按排量计税
+						switch(parseInt(this.selectedDisplacementIndex)) {
+							case 0: // 1.0L以下 (实际是按照CC计算，这里简化处理)
+								baseTax = 36;
+								break;
+							case 1: // 1.0-1.6L
+								baseTax = 48;
+								break;
+							default: // 其他排量
+								baseTax = 60;
+								break;
+						}
+						break;
+						
+					case 4: // 挂车 - 按吨位计税
+						switch(parseInt(this.selectedTonnageIndex)) {
+							case 0: // 1吨以下
+								baseTax = 60;
+								break;
+							case 1: // 1-3吨
+								baseTax = 120;
+								break;
+							case 2: // 3-5吨
+								baseTax = 180;
+								break;
+							case 3: // 5-10吨
+								baseTax = 360;
+								break;
+							case 4: // 10吨以上
+								baseTax = 600;
+								break;
+						}
+						break;
+				}
+				
+				// 新能源车减免政策
+				if (this.isNewEnergy) {
+					// 纯电动车减免100%，混合动力车减免50%，这里简化为减免50%
+					baseTax = baseTax * 0.5;
+				}
+				
+				// 年税额
+				this.annualTax = baseTax;
+				
+				// 计算总税额 (年税额 * 年限)
+				const years = parseInt(this.selectedTaxYearIndex) + 1;
+				this.totalTax = this.annualTax * years;
+				
+				// 显示结果
+				this.showResult = true;
+				
+				console.log('计算结果:', {
+					车辆类型: this.vehicleTypes[this.selectedVehicleTypeIndex],
+					年税额: this.annualTax,
+					缴税年限: this.taxYears[this.selectedTaxYearIndex],
+					总税额: this.totalTax
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	/* 计算器卡片样式 */
+	.calculator-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.card-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.card-desc {
+		font-size: 14px;
+		color: #999999;
+		margin-bottom: 20px;
+	}
+	
+	.form-section {
+		flex-direction: column;
+		margin-bottom: 20px;
+	}
+	
+	.form-item {
+		flex-direction: column;
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-picker {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		background-color: #F8F8F8;
+		justify-content: center;
+	}
+	
+	.picker-value {
+		height: 40px;
+		line-height: 40px;
+		padding: 0 10px;
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	/* 单选按钮样式 */
+	.radio-group {
+		flex-direction: row;
+		margin-top: 5px;
+	}
+	
+	.radio-item {
+		flex-direction: row;
+		align-items: center;
+		margin-right: 30px;
+	}
+	
+	.radio-button {
+		width: 20px;
+		height: 20px;
+		border-radius: 10px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		margin-right: 5px;
+		position: relative;
+	}
+	
+	.radio-button.active {
+		border-color: #1E90FF;
+	}
+	
+	.radio-button.active::after {
+		content: '';
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		border-radius: 6px;
+		background-color: #1E90FF;
+		top: 3px;
+		left: 3px;
+	}
+	
+	.radio-label {
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	.calculate-btn {
+		height: 45px;
+		background-color: #1E90FF;
+		border-radius: 22.5px;
+		font-size: 16px;
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+	
+	/* 结果卡片样式 */
+	.result-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.result-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.result-item {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.result-item.highlight {
+		border-bottom-width: 0;
+		background-color: #F0F8FF;
+		padding: 10px;
+		border-radius: 5px;
+		margin: 10px 0;
+	}
+	
+	.result-label {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.result-value {
+		font-size: 14px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	.result-value.highlight {
+		color: #1E90FF;
+		font-size: 16px;
+	}
+	
+	/* 缴税须知样式 */
+	.tax-note {
+		margin-top: 20px;
+		padding-top: 15px;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+	}
+	
+	.note-title {
+		font-size: 14px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 10px;
+	}
+	
+	.note-text {
+		font-size: 12px;
+		color: #666666;
+		line-height: 1.5;
+		margin-bottom: 5px;
+	}
+</style>

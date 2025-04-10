@@ -1,0 +1,623 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		
+		
+		<!-- 轮播图模块 -->
+		<swiper class="banner-swiper" 
+			:indicator-dots="swiperOptions.indicatorDots"
+			:autoplay="swiperOptions.autoplay"
+			:interval="swiperOptions.interval"
+			:duration="swiperOptions.duration"
+			:circular="swiperOptions.circular">
+			<swiper-item v-for="(item, index) in banners" :key="index" @click="bannerClick(item)">
+				<view class="calculator-card">
+					<image class="calculator-image" :src="item.image"></image>
+					<text class="calculator-title">{{item.title}}</text>
+				</view>
+			</swiper-item>
+		</swiper>
+		
+		<!-- 功能图标区 -->
+		<view class="function-area">
+			<view class="function-item" @click="navigateTo('car')">
+				<image class="function-icon" src="/static/car_insurance.svg"></image>
+				<text class="function-text">车险出单</text>
+			</view>
+			<view class="function-item" @click="navigateTo('health')">
+				<image class="function-icon" src="/static/health_insurance.svg"></image>
+				<text class="function-text">健康险</text>
+			</view>
+			<view class="function-item" @click="navigateTo('group')">
+				<image class="function-icon" src="/static/group_insurance.svg"></image>
+				<text class="function-text">团险</text>
+			</view>
+			<view class="function-item" @click="navigateTo('query')">
+				<image class="function-icon" src="/static/policy_query.svg"></image>
+				<text class="function-text">保单查询</text>
+			</view>
+			<view class="function-item" @click="navigateTo('netFee')">
+				<image class="function-icon" src="/static/net_fee_calculator.svg"></image>
+				<text class="function-text">净费计算器</text>
+			</view>
+			<view class="function-item" @click="navigateTo('refund')">
+				<image class="function-icon" src="/static/refund_calculator.svg"></image>
+				<text class="function-text">退保计算器</text>
+			</view>
+			<view class="function-item" @click="navigateTo('inspection')">
+				<image class="function-icon" src="/static/vehicle_inspection_calculator.svg"></image>
+				<text class="function-text">检车计算器</text>
+			</view>
+			<view class="function-item" @click="navigateTo('vehicleTax')">
+				<image class="function-icon" src="/static/vehicle_tax_calculator.svg"></image>
+				<text class="function-text">车船税计算</text>
+			</view>
+		</view>
+		
+		<!-- 数据概览区 -->
+		<view class="data-overview">
+			<text class="section-title">数据概览</text>
+			<view class="data-cards">
+				<view class="data-card">
+					<text class="data-number">13单</text>
+					<text class="data-label">本月保单</text>
+				</view>
+				<view class="data-card">
+					<text class="data-number">6319元</text>
+					<text class="data-label">本月佣金</text>
+				</view>
+				<view class="data-card">
+					<text class="data-number">65单</text>
+					<text class="data-label">待续保</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 最新动态区 -->
+		<view class="news-section">
+			<text class="section-title">最新动态</text>
+			<view class="news-list">
+				<view class="news-item">
+					<image class="news-icon" src="/static/notification.svg"></image>
+					<view class="news-content">
+						<text class="news-title">佣金结算完成</text>
+						<text class="news-desc">3月份佣金结算完成。</text>
+						<text class="news-time">2025-03-27 10:35</text>
+					</view>
+				</view>
+				<view class="news-item">
+					<image class="news-icon" src="/static/notification.svg"></image>
+					<view class="news-content">
+						<text class="news-title">系统上线公告</text>
+						<text class="news-desc">新系统上线，有问题及时反馈。</text>
+						<text class="news-time">2025-03-27 10:35</text>
+					</view>
+				</view>
+				<view class="news-item">
+					<image class="news-icon" src="/static/notification.svg"></image>
+					<view class="news-content">
+						<text class="news-title">政策提醒</text>
+						<text class="news-desc">新的保险政策已更新，请查看。</text>
+						<text class="news-time">2025-03-27 10:35</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 底部导航栏 -->
+		<view class="tab-bar">
+			<view class="tab-item active">
+				<text class="tab-icon">🏠</text>
+				<text class="tab-text">首页</text>
+			</view>
+			<view class="tab-item" @click="switchTab('policy')">
+				<text class="tab-icon">📋</text>
+				<text class="tab-text">保单</text>
+			</view>
+			<view class="tab-item" @click="switchTab('commission')">
+				<text class="tab-icon">💰</text>
+				<text class="tab-text">佣金</text>
+			</view>
+			<view class="tab-item" @click="switchTab('member')">
+				<text class="tab-icon">👤</text>
+				<text class="tab-text">我的</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '保险代理人平台',
+				// 轮播图数据
+				banners: [
+					{
+						image: '/static/car_calculator.svg',
+						title: '车险怎么买划算？',
+						type: 'car'
+					},
+					{
+						image: '/static/health_insurance.svg',
+						title: '健康险产品推荐',
+						type: 'health'
+					},
+					{
+						image: '/static/group_insurance.svg',
+						title: '团险优惠活动',
+						type: 'group'
+					}
+				],
+				// 轮播图配置
+				swiperOptions: {
+					indicatorDots: true,
+					autoplay: true,
+					interval: 3000,
+					duration: 500,
+					circular: true
+				}
+			}
+		},
+		onLoad() {
+			// 页面加载时可以获取数据
+			console.log('首页加载')
+		},
+		methods: {
+			navigateTo(type) {
+				// 根据类型跳转到不同页面
+				console.log('跳转到：' + type)
+				
+				// 页面路径映射
+				const pageMap = {
+					car: 'pages/car/index',
+					health: 'pages/health/index',
+					group: 'pages/group/index',
+					query: 'pages/query/index',
+					netFee: 'pages/calculator/netfee',
+					refund: 'pages/calculator/refund',
+					inspection: 'pages/calculator/inspection',
+					vehicleTax: 'pages/calculator/vehicletax'
+				}
+				
+				// 已实现的页面列表（与pages.json中注册的页面保持一致）
+				const implementedPages = [
+					'pages/index/index',
+					'pages/calculator/refund',
+					'pages/car/index',
+					'pages/health/index',
+					'pages/group/index',
+					'pages/query/index',
+					'pages/calculator/netfee',
+					'pages/calculator/inspection',
+					'pages/calculator/vehicletax',
+					'pages/member/index',
+					'pages/member/login',
+					'pages/member/level',
+					'pages/member/team',
+					'pages/member/invite',
+					'pages/member/commission'
+				]
+				
+				// 检查是否有对应的页面路径
+				if (pageMap[type]) {
+					// 检查页面是否已实现
+					if (implementedPages.includes(pageMap[type])) {
+						uni.navigateTo({
+							url: '/' + pageMap[type],
+							success: () => {
+								console.log('跳转成功')
+							},
+							fail: (err) => {
+								console.error('跳转失败', err)
+								// 输出更详细的错误信息以便调试
+								console.log('错误详情:', JSON.stringify(err))
+								uni.showToast({
+									title: '页面跳转失败，请稍后再试',
+									icon: 'none',
+									duration: 2000
+								})
+							}
+						})
+					} else {
+						// 页面尚未实现，直接显示提示
+						console.log('页面尚未实现：' + pageMap[type])
+						uni.showToast({
+							title: '页面开发中，敬请期待',
+							icon: 'none'
+						})
+					}
+				}
+			},
+			// 轮播图点击事件
+			bannerClick(item) {
+				if (item.type) {
+					this.navigateTo(item.type)
+				}
+			},
+			
+			// 底部导航栏切换
+			switchTab(tab) {
+				if (tab === 'index') {
+					// 已经在首页，不需要跳转
+					return
+				}
+				
+				// 页面映射
+				const tabPageMap = {
+					policy: '/pages/query/index', // 保单查询页面
+					commission: '/pages/member/commission', // 佣金管理页面
+					member: '/pages/member/index' // 会员中心页面
+				}
+				
+				// 跳转到对应页面
+				if (tabPageMap[tab]) {
+					// 检查用户是否登录（如果是佣金页面）
+					if (tab === 'commission') {
+						try {
+							const userInfoStr = uni.getStorageSync('userInfo')
+							if (!userInfoStr) {
+								uni.showToast({
+									title: '请先登录',
+									icon: 'none'
+								})
+								setTimeout(() => {
+									uni.navigateTo({
+										url: '/pages/member/login'
+									})
+								}, 1000)
+								return
+							}
+						} catch (e) {
+							console.error('获取用户信息失败', e)
+						}
+					}
+					
+					uni.navigateTo({
+						url: tabPageMap[tab],
+						success: () => {
+							console.log('跳转到' + tab + '页面成功')
+						},
+						fail: (err) => {
+							console.error('跳转失败', err)
+							uni.showToast({
+								title: '页面跳转失败，请稍后再试',
+								icon: 'none',
+								duration: 2000
+							})
+						}
+					})
+				}
+			},
+			// 跳转到会员中心
+			navigateToMember() {
+				uni.navigateTo({
+					url: '/pages/member/index',
+					success: () => {
+						console.log('跳转到会员中心成功')
+					},
+					fail: (err) => {
+						console.error('跳转失败', err)
+						uni.showToast({
+							title: '页面跳转失败，请稍后再试',
+							icon: 'none',
+							duration: 2000
+						})
+					}
+				})
+			},
+			
+			// 跳转到佣金管理
+			navigateToCommission() {
+				uni.navigateTo({
+					url: '/pages/member/commission',
+					success: () => {
+						console.log('跳转到佣金管理成功')
+					},
+					fail: (err) => {
+						console.error('跳转失败', err)
+						uni.showToast({
+							title: '页面跳转失败，请稍后再试',
+							icon: 'none',
+							duration: 2000
+						})
+					}
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		padding-bottom: 50px; /* 为底部导航栏留出空间 */
+		background-color: #F5F7FA;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 轮播图模块 */
+	.banner-swiper {
+		height: 150px;
+		margin: 15px;
+		z-index: 5;
+	}
+	
+	.calculator-card {
+		margin: 0;
+		height: 150px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		overflow: hidden;
+		position: relative;
+		transition: transform 0.3s, box-shadow 0.3s;
+		box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+		z-index: 4;
+	}
+	
+	.calculator-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 0 20px rgba(0,0,0,0.25);
+	}
+	
+	.calculator-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+	}
+	
+	.calculator-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	
+	.calculator-title {
+		position: absolute;
+		left: 15px;
+		bottom: 15px;
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+		text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+	}
+	
+	/* 功能图标区 */
+	.function-area {
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: space-around;
+		padding: 15px 0;
+		background-color: #FFFFFF;
+		margin: 15px;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+		z-index: 1;
+	}
+	
+	.function-item {
+		align-items: center;
+		padding: 10px;
+		border-radius: 8px;
+		transition-property: transform, background-color;
+		transition-duration: 0.2s;
+		width: 22%;
+		margin: 5px 0;
+	}
+	
+	.function-item:active {
+		transform: scale(0.95);
+		background-color: #F0F8FF;
+	}
+	
+	.function-icon {
+		width: 50px;
+		height: 50px;
+		margin-bottom: 5px;
+		transition: transform 0.3s;
+	}
+	
+	.function-item:active .function-icon {
+		transform: scale(1.1);
+	}
+	
+	.function-text {
+		font-size: 14px;
+		color: #333333;
+		transition: color 0.2s;
+	}
+	
+	.function-item:active .function-text {
+		color: #1E90FF;
+	}
+	
+	/* 数据概览区 */
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin: 15px 15px 10px 15px;
+	}
+	
+	.data-overview {
+		background-color: #FFFFFF;
+		margin: 15px;
+		border-radius: 12px;
+		padding-bottom: 15px;
+		box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+		z-index: 2;
+	}
+	
+	.data-cards {
+		flex-direction: row;
+		justify-content: space-around;
+	}
+	
+	.data-card {
+		align-items: center;
+		padding: 10px;
+		transition: transform 0.3s, box-shadow 0.3s;
+		background-color: #F8FBFF;
+		border-radius: 8px;
+		margin: 5px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+	}
+	
+	.data-card:active {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+	}
+	
+	.data-card:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+	}
+	
+	.data-number {
+		font-size: 20px;
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	.data-label {
+		font-size: 12px;
+		color: #666666;
+		margin-top: 5px;
+	}
+	
+	/* 最新动态区 */
+	.news-section {
+		background-color: #FFFFFF;
+		margin: 15px;
+		border-radius: 12px;
+		padding-bottom: 15px;
+		box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+		border-width: 1px;
+		border-color: rgba(0,0,0,0.05);
+		z-index: 3;
+	}
+	
+	.news-list {
+		flex-direction: column;
+	}
+	
+	.news-item {
+		flex-direction: row;
+		padding: 10px 15px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+		transition: all 0.3s;
+		margin: 0 5px;
+		border-radius: 6px;
+	}
+	
+	.news-item:active {
+		background-color: #F5F5F5;
+		transform: scale(0.98);
+	}
+	
+	.news-item:hover {
+		background-color: #F8F8F8;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		transform: translateX(3px);
+	}
+	
+	.news-icon {
+		width: 40px;
+		height: 40px;
+		margin-right: 10px;
+	}
+	
+	.news-content {
+		flex: 1;
+		flex-direction: column;
+	}
+	
+	.news-title {
+		font-size: 16px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	.news-desc {
+		font-size: 14px;
+		color: #666666;
+		margin-top: 5px;
+	}
+	
+	.news-time {
+		font-size: 12px;
+		color: #999999;
+		margin-top: 5px;
+	}
+	
+	/* 底部导航栏 */
+	.tab-bar {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 50px;
+		background-color: #FFFFFF;
+		flex-direction: row;
+		justify-content: space-around;
+		align-items: center;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+		box-shadow: 0 -4px 10px rgba(0,0,0,0.08);
+		z-index: 10;
+	}
+	
+	.tab-item {
+		align-items: center;
+		padding: 5px 15px;
+		border-radius: 20px;
+		transition: all 0.3s ease;
+	}
+	
+	.tab-item:active {
+		transform: translateY(-2px);
+		background-color: #F0F8FF;
+	}
+	
+	.tab-icon {
+		font-size: 20px;
+		transition: transform 0.3s;
+	}
+	
+	.tab-item.active .tab-icon {
+		transform: scale(1.2);
+	}
+	
+	.tab-text {
+		font-size: 12px;
+		color: #666666;
+		margin-top: 2px;
+		transition: all 0.3s;
+	}
+	
+	.tab-item.active .tab-text {
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	.tab-item.active {
+		background-color: rgba(30,144,255,0.1);
+	}
+</style>

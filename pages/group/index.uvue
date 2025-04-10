@@ -1,0 +1,399 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">团险</text>
+		</view>
+		
+		<view class="content">
+			<!-- 团险介绍 -->
+			<view class="intro-section">
+				<text class="intro-title">企业团体保险解决方案</text>
+				<text class="intro-desc">为企业员工提供全面的保障，提升员工福利，增强企业凝聚力</text>
+				<image class="intro-image" src="/static/group_insurance.svg"></image>
+			</view>
+			
+			<!-- 团险产品 -->
+			<view class="product-section">
+				<text class="section-title">热门团险产品</text>
+				<view class="product-list">
+					<view class="product-card" v-for="(item, index) in products" :key="index" @click="viewDetail(item)">
+						<view class="product-header">
+							<text class="product-name">{{item.name}}</text>
+							<text class="product-tag">{{item.tag}}</text>
+						</view>
+						<text class="product-desc">{{item.desc}}</text>
+						<view class="product-features">
+							<view class="feature-item" v-for="(feature, fidx) in item.features" :key="fidx">
+								<text class="feature-text">{{feature}}</text>
+							</view>
+						</view>
+						<view class="product-footer">
+							<text class="price-info">{{item.priceInfo}}</text>
+							<button class="detail-btn" type="primary" size="mini">查看详情</button>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 申请流程 -->
+			<view class="process-section">
+				<text class="section-title">申请流程</text>
+				<view class="process-steps">
+					<view class="process-step">
+						<view class="step-number">1</view>
+						<text class="step-title">需求沟通</text>
+						<text class="step-desc">了解企业需求和预算</text>
+					</view>
+					<view class="step-arrow">→</view>
+					<view class="process-step">
+						<view class="step-number">2</view>
+						<text class="step-title">方案定制</text>
+						<text class="step-desc">量身定制保险方案</text>
+					</view>
+					<view class="step-arrow">→</view>
+					<view class="process-step">
+						<view class="step-number">3</view>
+						<text class="step-title">签约投保</text>
+						<text class="step-desc">确认方案并签约</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 咨询表单 -->
+			<view class="contact-section">
+				<text class="section-title">免费咨询</text>
+				<view class="contact-form">
+					<view class="form-item">
+						<text class="form-label">企业名称</text>
+						<input class="form-input" placeholder="请输入企业名称" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">联系人</text>
+						<input class="form-input" placeholder="请输入联系人姓名" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">联系电话</text>
+						<input class="form-input" placeholder="请输入联系电话" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">员工人数</text>
+						<input class="form-input" placeholder="请输入员工人数" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">需求描述</text>
+						<textarea class="form-textarea" placeholder="请简要描述您的需求" />
+					</view>
+					<button class="submit-btn" type="primary">提交咨询</button>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '团险',
+				products: [
+					{
+						id: 1,
+						name: '企业员工团体医疗保险',
+						tag: '热门',
+						desc: '为企业员工提供全面的医疗保障，包含门诊、住院、手术等多项保障。',
+						features: ['门诊报销', '住院保障', '手术医疗', '特殊疾病'],
+						priceInfo: '人均300元/年起'
+					},
+					{
+						id: 2,
+						name: '企业团体意外险',
+						tag: '推荐',
+						desc: '为企业员工提供全天候意外伤害保障，包含意外身故、伤残等保障。',
+						features: ['意外身故', '意外伤残', '意外医疗', '24小时保障'],
+						priceInfo: '人均100元/年起'
+					},
+					{
+						id: 3,
+						name: '企业团体重疾险',
+						tag: '高保障',
+						desc: '为企业员工提供重大疾病保障，一旦确诊即可获得一笔保险金。',
+						features: ['重疾赔付', '轻症赔付', '身故保障', '豁免保费'],
+						priceInfo: '人均500元/年起'
+					}
+				]
+			}
+		},
+		onLoad() {
+			console.log('团险页面加载')
+		},
+		methods: {
+			// 查看产品详情
+			viewDetail(item) {
+				console.log('查看团险产品详情:', item.id)
+				uni.showToast({
+					title: '查看产品: ' + item.name,
+					icon: 'none'
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	/* 介绍区域样式 */
+	.intro-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		align-items: center;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.intro-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 10px;
+		text-align: center;
+	}
+	
+	.intro-desc {
+		font-size: 14px;
+		color: #666666;
+		text-align: center;
+		margin-bottom: 15px;
+	}
+	
+	.intro-image {
+		width: 200px;
+		height: 150px;
+		object-fit: contain;
+	}
+	
+	/* 产品区域样式 */
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.product-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.product-list {
+		flex-direction: column;
+	}
+	
+	.product-card {
+		background-color: #F8F8F8;
+		border-radius: 8px;
+		padding: 15px;
+		margin-bottom: 15px;
+		transition: transform 0.3s, box-shadow 0.3s;
+	}
+	
+	.product-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+	}
+	
+	.product-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+	
+	.product-name {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.product-tag {
+		background-color: #FF6600;
+		color: #FFFFFF;
+		font-size: 12px;
+		padding: 2px 8px;
+		border-radius: 10px;
+	}
+	
+	.product-desc {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 10px;
+	}
+	
+	.product-features {
+		flex-direction: row;
+		flex-wrap: wrap;
+		margin-bottom: 15px;
+	}
+	
+	.feature-item {
+		background-color: #E6F3FF;
+		padding: 4px 8px;
+		border-radius: 4px;
+		margin-right: 8px;
+		margin-bottom: 8px;
+	}
+	
+	.feature-text {
+		font-size: 12px;
+		color: #1E90FF;
+	}
+	
+	.product-footer {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+	
+	.price-info {
+		font-size: 14px;
+		color: #FF6600;
+		font-weight: bold;
+	}
+	
+	.detail-btn {
+		background-color: #1E90FF;
+		border-radius: 15px;
+		font-size: 14px;
+	}
+	
+	/* 流程区域样式 */
+	.process-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.process-steps {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+	
+	.process-step {
+		align-items: center;
+		width: 28%;
+	}
+	
+	.step-number {
+		width: 30px;
+		height: 30px;
+		border-radius: 15px;
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		text-align: center;
+		line-height: 30px;
+		margin-bottom: 8px;
+	}
+	
+	.step-arrow {
+		font-size: 20px;
+		color: #CCCCCC;
+		font-weight: bold;
+	}
+	
+	.step-title {
+		font-size: 14px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.step-desc {
+		font-size: 12px;
+		color: #999999;
+		text-align: center;
+	}
+	
+	/* 咨询表单样式 */
+	.contact-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.contact-form {
+		flex-direction: column;
+	}
+	
+	.form-item {
+		flex-direction: column;
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-input {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		padding: 0 10px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.form-textarea {
+		height: 80px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		padding: 10px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.submit-btn {
+		height: 45px;
+		background-color: #1E90FF;
+		border-radius: 22.5px;
+		font-size: 16px;
+		color: #FFFFFF;
+		font-weight: bold;
+		margin-top: 10px;
+	}
+</style>

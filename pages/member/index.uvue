@@ -1,0 +1,512 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">会员中心</text>
+		</view>
+		
+		<!-- 会员信息卡片 -->
+		<view class="member-card">
+			<view class="member-info">
+				<view class="avatar-container">
+					<image class="avatar" src="/static/default_avatar.svg"></image>
+				</view>
+				<view class="info-container">
+					<text class="member-name">{{userInfo.nickname || '未登录'}}</text>
+					<view class="level-container" v-if="userInfo.isLogin">
+						<text class="level-tag">{{getLevelName()}}</text>
+						<text class="member-id">ID: {{userInfo.memberId}}</text>
+					</view>
+					<text class="login-btn" v-else @click="goToLogin">点击登录/注册</text>
+				</view>
+			</view>
+			<view class="member-stats" v-if="userInfo.isLogin">
+				<view class="stat-item">
+					<text class="stat-value">{{userInfo.points}}</text>
+					<text class="stat-label">积分</text>
+				</view>
+				<view class="stat-item">
+					<text class="stat-value">{{userInfo.balance}}元</text>
+					<text class="stat-label">佣金余额</text>
+				</view>
+				<view class="stat-item">
+					<text class="stat-value">{{userInfo.teamCount}}人</text>
+					<text class="stat-label">团队成员</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 会员功能区 -->
+		<view class="function-section">
+			<view class="section-header">
+				<text class="section-title">会员功能</text>
+			</view>
+			<view class="function-grid">
+				<view class="function-item" @click="navigateTo('memberInfo')">
+					<image class="function-icon" src="/static/member_info.svg"></image>
+					<text class="function-text">个人资料</text>
+				</view>
+				<view class="function-item" @click="navigateTo('points')">
+					<image class="function-icon" src="/static/points.svg"></image>
+					<text class="function-text">积分管理</text>
+				</view>
+				<view class="function-item" @click="navigateTo('commission')">
+					<image class="function-icon" src="/static/commission.svg"></image>
+					<text class="function-text">佣金管理</text>
+				</view>
+				<view class="function-item" @click="navigateTo('team')">
+					<image class="function-icon" src="/static/team.svg"></image>
+					<text class="function-text">我的团队</text>
+				</view>
+				<view class="function-item" @click="navigateTo('invite')">
+					<image class="function-icon" src="/static/invite.svg"></image>
+					<text class="function-text">邀请好友</text>
+				</view>
+				<view class="function-item" @click="navigateTo('level')">
+					<image class="function-icon" src="/static/level.svg"></image>
+					<text class="function-text">等级特权</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 我的订单 -->
+		<view class="order-section" v-if="userInfo.isLogin">
+			<view class="section-header">
+				<text class="section-title">我的订单</text>
+				<text class="more-link" @click="navigateTo('orders')">查看全部 ></text>
+			</view>
+			<view class="order-status">
+				<view class="status-item" @click="navigateTo('orders', {status: 'pending'})">
+					<image class="status-icon" src="/static/pending.svg"></image>
+					<text class="status-text">待处理</text>
+					<text class="status-badge" v-if="orderStats.pending > 0">{{orderStats.pending}}</text>
+				</view>
+				<view class="status-item" @click="navigateTo('orders', {status: 'processing'})">
+					<image class="status-icon" src="/static/processing.svg"></image>
+					<text class="status-text">处理中</text>
+					<text class="status-badge" v-if="orderStats.processing > 0">{{orderStats.processing}}</text>
+				</view>
+				<view class="status-item" @click="navigateTo('orders', {status: 'completed'})">
+					<image class="status-icon" src="/static/completed.svg"></image>
+					<text class="status-text">已完成</text>
+				</view>
+				<view class="status-item" @click="navigateTo('orders', {status: 'cancelled'})">
+					<image class="status-icon" src="/static/cancelled.svg"></image>
+					<text class="status-text">已取消</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 底部导航栏 -->
+		<view class="tab-bar">
+			<view class="tab-item" @click="switchTab('index')">
+				<text class="tab-icon">🏠</text>
+				<text class="tab-text">首页</text>
+			</view>
+			<view class="tab-item" @click="switchTab('policy')">
+				<text class="tab-icon">📋</text>
+				<text class="tab-text">保单</text>
+			</view>
+			<view class="tab-item" @click="switchTab('commission')">
+				<text class="tab-icon">💰</text>
+				<text class="tab-text">佣金</text>
+			</view>
+			<view class="tab-item active">
+				<text class="tab-icon">👤</text>
+				<text class="tab-text">我的</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '会员中心',
+				// 用户信息
+				userInfo: {
+					isLogin: false,
+					memberId: '',
+					nickname: '',
+					level: 0, // 0: 普通用户, 1: 青铜, 2: 白银, 3: 黄金, 4: 铂金, 5: 钻石
+					points: 0,
+					balance: 0,
+					teamCount: 0,
+					inviteCode: ''
+				},
+				// 订单统计
+				orderStats: {
+					pending: 0,
+					processing: 0
+				}
+			}
+		},
+		onLoad() {
+			console.log('会员中心页面加载')
+			// 加载用户信息
+			this.loadUserInfo()
+		},
+		methods: {
+			// 加载用户信息
+			loadUserInfo() {
+				// 从本地存储获取用户信息
+				try {
+					const userInfoStr = uni.getStorageSync('userInfo')
+					console.log('获取到的用户信息:', userInfoStr)
+					if (userInfoStr) {
+						const userInfo = JSON.parse(userInfoStr)
+						this.userInfo = userInfo
+						console.log('解析后的用户信息:', this.userInfo)
+						
+						// 加载订单统计数据
+						this.loadOrderStats()
+					} else {
+						// 未登录状态，使用默认数据
+						this.userInfo = {
+							isLogin: false,
+							memberId: '',
+							nickname: '',
+							level: 0,
+							points: 0,
+							balance: 0,
+							teamCount: 0,
+							inviteCode: ''
+						}
+						this.orderStats = {
+							pending: 0,
+							processing: 0
+						}
+					}
+				} catch (e) {
+					console.error('获取用户信息失败', e)
+					// 使用默认数据
+					this.userInfo = {
+						isLogin: false,
+						memberId: '',
+						nickname: '',
+						level: 0,
+						points: 0,
+						balance: 0,
+						teamCount: 0,
+						inviteCode: ''
+					}
+					this.orderStats = {
+						pending: 0,
+						processing: 0
+					}
+				}
+			},
+			
+			// 加载订单统计数据
+			loadOrderStats() {
+				// 实际应用中应该从API获取数据
+				// 这里使用模拟数据
+				if (this.userInfo.isLogin) {
+					this.orderStats = {
+						pending: 2,
+						processing: 1
+					}
+				}
+			},
+			
+			// 获取会员等级名称
+			getLevelName() {
+				const levelNames = ['普通用户', '青铜会员', '白银会员', '黄金会员', '铂金会员', '钻石会员']
+				return levelNames[this.userInfo.level] || '普通用户'
+			},
+			
+			// 跳转到登录页面
+			goToLogin() {
+				uni.navigateTo({
+					url: '/pages/member/login'
+				})
+			},
+			
+			// 导航到其他页面
+			navigateTo(page, params = {}) {
+				// 如果未登录且访问需要登录的页面，则跳转到登录页
+				const needLoginPages = ['memberInfo', 'points', 'commission', 'team', 'invite', 'level', 'orders']
+				if (!this.userInfo.isLogin && needLoginPages.includes(page)) {
+					this.goToLogin()
+					return
+				}
+				
+				// 构建URL参数
+				let paramsStr = ''
+				if (Object.keys(params).length > 0) {
+					paramsStr = '?' + Object.keys(params)
+						.map(key => `${key}=${encodeURIComponent(params[key])}`)
+						.join('&')
+				}
+				
+				// 页面映射
+				const pageMap = {
+					memberInfo: '/pages/member/info',
+					points: '/pages/member/points', // 积分商城页面
+					commission: '/pages/member/commission',
+					team: '/pages/member/team',
+					invite: '/pages/member/invite',
+					level: '/pages/member/level',
+					orders: '/pages/member/orders'
+				}
+				
+				if (pageMap[page]) {
+					uni.navigateTo({
+						url: pageMap[page] + paramsStr
+					})
+				}
+			},
+			
+			// 切换底部标签
+			switchTab(tab) {
+				if (tab === 'index') {
+					uni.switchTab({
+						url: '/pages/index/index'
+					})
+				}
+				// 其他标签页待实现
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 50px;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 会员信息卡片 */
+	.member-card {
+		margin: 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.member-info {
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 15px;
+	}
+	
+	.avatar-container {
+		width: 70px;
+		height: 70px;
+		border-radius: 35px;
+		overflow: hidden;
+		margin-right: 15px;
+		border-width: 2px;
+		border-color: #1E90FF;
+	}
+	
+	.avatar {
+		width: 70px;
+		height: 70px;
+	}
+	
+	.info-container {
+		flex: 1;
+	}
+	
+	.member-name {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.level-container {
+		flex-direction: row;
+		align-items: center;
+	}
+	
+	.level-tag {
+		background-color: #FFD700;
+		color: #333333;
+		font-size: 12px;
+		padding: 2px 8px;
+		border-radius: 10px;
+		margin-right: 10px;
+	}
+	
+	.member-id {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	.login-btn {
+		color: #1E90FF;
+		font-size: 14px;
+		margin-top: 5px;
+	}
+	
+	.member-stats {
+		flex-direction: row;
+		justify-content: space-around;
+		padding-top: 15px;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+	}
+	
+	.stat-item {
+		align-items: center;
+	}
+	
+	.stat-value {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.stat-label {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	/* 会员功能区 */
+	.function-section {
+		margin: 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.section-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+	}
+	
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.more-link {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	.function-grid {
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+	
+	.function-item {
+		width: 33.33%;
+		align-items: center;
+		padding: 10px 0;
+	}
+	
+	.function-icon {
+		width: 40px;
+		height: 40px;
+		margin-bottom: 5px;
+	}
+	
+	.function-text {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	/* 订单区域 */
+	.order-section {
+		margin: 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.order-status {
+		flex-direction: row;
+		justify-content: space-around;
+	}
+	
+	.status-item {
+		align-items: center;
+		position: relative;
+	}
+	
+	.status-icon {
+		width: 30px;
+		height: 30px;
+		margin-bottom: 5px;
+	}
+	
+	.status-text {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	.status-badge {
+		position: absolute;
+		top: -5px;
+		right: -5px;
+		background-color: #FF3B30;
+		color: #FFFFFF;
+		font-size: 10px;
+		width: 16px;
+		height: 16px;
+		border-radius: 8px;
+		text-align: center;
+		line-height: 16px;
+	}
+	
+	/* 底部导航栏 */
+	.tab-bar {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 50px;
+		background-color: #FFFFFF;
+		flex-direction: row;
+		justify-content: space-around;
+		align-items: center;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+		box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+	}
+	
+	.tab-item {
+		align-items: center;
+		padding: 5px 0;
+	}
+	
+	.tab-icon {
+		font-size: 20px;
+		margin-bottom: 2px;
+	}
+	
+	.tab-text {
+		font-size: 10px;
+		color: #666666;
+	}
+	
+	.tab-item.active .tab-text {
+		color: #1E90FF;
+	}
+</style>

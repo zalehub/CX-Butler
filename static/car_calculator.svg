@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+  <!-- 计算器底座 -->
+  <rect x="20" y="60" width="160" height="50" rx="5" fill="#ff4444" />
+  <!-- 计算器按钮 -->
+  <rect x="30" y="70" width="30" height="30" rx="3" fill="#ffffff" />
+  <rect x="70" y="70" width="30" height="30" rx="3" fill="#ffffff" />
+  <rect x="110" y="70" width="30" height="30" rx="3" fill="#ffffff" />
+  <rect x="150" y="70" width="30" height="30" rx="3" fill="#ffffff" />
+  <!-- 汽车 -->
+  <rect x="60" y="20" width="80" height="40" rx="10" fill="#ffffff" />
+  <rect x="50" y="40" width="100" height="20" rx="5" fill="#ffffff" />
+  <circle cx="70" cy="60" r="10" fill="#333333" />
+  <circle cx="130" cy="60" r="10" fill="#333333" />
+</svg>

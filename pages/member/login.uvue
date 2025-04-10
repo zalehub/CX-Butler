@@ -1,0 +1,797 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">{{isRegister ? '注册账号' : '会员登录'}}</text>
+		</view>
+		
+		<!-- 登录表单 -->
+		<view class="form-container" v-if="!isRegister">
+			<view class="form-card">
+				<!-- 手机号/用户名输入 -->
+				<view class="form-item">
+					<text class="form-label">手机号/用户名</text>
+					<input class="form-input" v-model="loginForm.account" placeholder="请输入手机号或用户名" />
+					<text class="error-text" v-if="errors.account">{{errors.account}}</text>
+				</view>
+				
+				<!-- 密码输入 -->
+				<view class="form-item">
+					<text class="form-label">密码</text>
+					<input class="form-input" type="password" v-model="loginForm.password" placeholder="请输入密码" />
+					<text class="error-text" v-if="errors.password">{{errors.password}}</text>
+				</view>
+				
+				<!-- 登录按钮 -->
+				<view class="button-container">
+					<button class="primary-button" @click="handleLogin">登录</button>
+				</view>
+				
+				<!-- 微信登录按钮 -->
+				<view class="wechat-login-container">
+					<button class="wechat-button" @click="handleWechatLogin">
+						<text class="wechat-icon">微信</text>
+						<text class="wechat-text">微信登录</text>
+					</button>
+				</view>
+				
+				<!-- 其他选项 -->
+				<view class="options-container">
+					<text class="option-link" @click="forgotPassword">忘记密码</text>
+					<text class="option-link" @click="toggleRegister">注册新账号</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 注册表单 -->
+		<view class="form-container" v-if="isRegister">
+			<view class="form-card">
+				<!-- 用户名输入 -->
+				<view class="form-item">
+					<text class="form-label">用户名</text>
+					<input class="form-input" v-model="registerForm.username" placeholder="请设置用户名" />
+					<text class="error-text" v-if="errors.username">{{errors.username}}</text>
+				</view>
+				
+				<!-- 手机号输入 -->
+				<view class="form-item">
+					<text class="form-label">手机号码</text>
+					<input class="form-input" type="number" v-model="registerForm.phone" placeholder="请输入手机号码" maxlength="11" />
+					<text class="error-text" v-if="errors.phone">{{errors.phone}}</text>
+				</view>
+				
+				<!-- 验证码 -->
+				<view class="form-item">
+					<text class="form-label">验证码</text>
+					<view class="verify-code-container">
+						<input class="form-input verify-input" type="number" v-model="registerForm.verifyCode" placeholder="请输入验证码" />
+						<button class="verify-button" :disabled="cooldown > 0" @click="sendVerifyCode">{{cooldown > 0 ? `${cooldown}秒后重发` : '获取验证码'}}</button>
+					</view>
+					<text class="error-text" v-if="errors.verifyCode">{{errors.verifyCode}}</text>
+				</view>
+				
+				<!-- 设置密码 -->
+				<view class="form-item">
+					<text class="form-label">设置密码</text>
+					<input class="form-input" type="password" v-model="registerForm.password" placeholder="请设置6-20位密码" />
+					<text class="error-text" v-if="errors.password">{{errors.password}}</text>
+				</view>
+				
+				<!-- 确认密码 -->
+				<view class="form-item">
+					<text class="form-label">确认密码</text>
+					<input class="form-input" type="password" v-model="registerForm.confirmPassword" placeholder="请再次输入密码" />
+					<text class="error-text" v-if="errors.confirmPassword">{{errors.confirmPassword}}</text>
+				</view>
+				
+				<!-- 邀请码 -->
+				<view class="form-item">
+					<text class="form-label">邀请码 (选填)</text>
+					<input class="form-input" v-model="registerForm.inviteCode" placeholder="请输入邀请人的邀请码" />
+				</view>
+				
+				<!-- 注册按钮 -->
+				<view class="button-container">
+					<button class="primary-button" @click="handleRegister">注册</button>
+				</view>
+				
+				<!-- 其他选项 -->
+				<view class="options-container">
+					<text class="option-link" @click="toggleRegister">返回登录</text>
+				</view>
+				
+				<!-- 用户协议 -->
+				<view class="agreement-container">
+					<checkbox class="agreement-checkbox" v-model="registerForm.agreeTerms" />
+					<text class="agreement-text">我已阅读并同意<text class="agreement-link">《用户协议》</text>和<text class="agreement-link">《隐私政策》</text></text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '会员登录',
+				isRegister: false, // 是否为注册模式
+				// 登录表单
+				loginForm: {
+					account: '', // 手机号或用户名
+					password: ''
+				},
+				// 注册表单
+				registerForm: {
+					username: '', // 新增用户名字段
+					phone: '',
+					verifyCode: '',
+					password: '',
+					confirmPassword: '',
+					inviteCode: '',
+					agreeTerms: false
+				},
+				// 错误信息
+				errors: {
+					account: '', // 新增账号错误信息
+					username: '', // 新增用户名错误信息
+					phone: '',
+					password: '',
+					verifyCode: '',
+					confirmPassword: ''
+				},
+				// 验证码冷却时间
+				cooldown: 0,
+				cooldownTimer: null,
+				// 微信用户信息
+				wxUserInfo: null
+			}
+		},
+		onLoad(options) {
+			console.log('登录页面加载')
+			// 检查是否有邀请码参数
+			if (options && options.inviteCode) {
+				this.registerForm.inviteCode = options.inviteCode
+				this.isRegister = true
+			}
+		},
+		onUnload() {
+			// 清除定时器
+			if (this.cooldownTimer) {
+				clearInterval(this.cooldownTimer)
+			}
+		},
+		methods: {
+			// 切换注册/登录模式
+			toggleRegister() {
+				this.isRegister = !this.isRegister
+				// 清除错误信息
+				this.clearErrors()
+			},
+			
+			// 清除错误信息
+			clearErrors() {
+				this.errors = {
+					account: '',
+					username: '',
+					phone: '',
+					password: '',
+					verifyCode: '',
+					confirmPassword: ''
+				}
+			},
+			
+			// 发送验证码
+			sendVerifyCode() {
+				// 验证手机号
+				if (!this.validatePhone(this.registerForm.phone)) {
+					return
+				}
+				
+				// 开始倒计时
+				this.cooldown = 60
+				this.cooldownTimer = setInterval(() => {
+					this.cooldown--
+					if (this.cooldown <= 0) {
+						clearInterval(this.cooldownTimer)
+					}
+				}, 1000)
+				
+				// 模拟发送验证码
+				uni.showToast({
+					title: '验证码已发送',
+					icon: 'none'
+				})
+				
+				// 实际应用中这里应该调用API发送验证码
+				console.log('发送验证码到:', this.registerForm.phone)
+			},
+			
+			// 验证手机号
+			validatePhone(phone) {
+				if (!phone) {
+					this.errors.phone = '请输入手机号码'
+					return false
+				}
+				
+				if (!/^1\d{10}$/.test(phone)) {
+					this.errors.phone = '请输入正确的手机号码'
+					return false
+				}
+				
+				this.errors.phone = ''
+				return true
+			},
+			
+			// 验证用户名
+			validateUsername(username) {
+				if (!username) {
+					this.errors.username = '请输入用户名'
+					return false
+				}
+				
+				if (username.length < 3 || username.length > 20) {
+					this.errors.username = '用户名长度应为3-20位'
+					return false
+				}
+				
+				if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
+					this.errors.username = '用户名只能包含字母、数字、下划线和中文'
+					return false
+				}
+				
+				this.errors.username = ''
+				return true
+			},
+			
+			// 验证账号（手机号或用户名）
+			validateAccount(account) {
+				if (!account) {
+					this.errors.account = '请输入手机号或用户名'
+					return false
+				}
+				
+				// 如果是手机号格式，则按手机号验证
+				if (/^1\d{10}$/.test(account)) {
+					return true
+				}
+				
+				// 否则按用户名格式验证
+				if (account.length < 3 || account.length > 20) {
+					this.errors.account = '用户名长度应为3-20位'
+					return false
+				}
+				
+				this.errors.account = ''
+				return true
+			},
+			
+			// 验证密码
+			validatePassword(password, isRegister = false) {
+				if (!password) {
+					this.errors.password = '请输入密码'
+					return false
+				}
+				
+				if (isRegister && (password.length < 6 || password.length > 20)) {
+					this.errors.password = '密码长度应为6-20位'
+					return false
+				}
+				
+				this.errors.password = ''
+				return true
+			},
+			
+			// 验证确认密码
+			validateConfirmPassword(password, confirmPassword) {
+				if (!confirmPassword) {
+					this.errors.confirmPassword = '请确认密码'
+					return false
+				}
+				
+				if (password !== confirmPassword) {
+					this.errors.confirmPassword = '两次输入的密码不一致'
+					return false
+				}
+				
+				this.errors.confirmPassword = ''
+				return true
+			},
+			
+			// 验证验证码
+			validateVerifyCode(verifyCode) {
+				if (!verifyCode) {
+					this.errors.verifyCode = '请输入验证码'
+					return false
+				}
+				
+				if (!/^\d{6}$/.test(verifyCode)) {
+					this.errors.verifyCode = '验证码格式不正确'
+					return false
+				}
+				
+				this.errors.verifyCode = ''
+				return true
+			},
+			
+			// 验证登录表单
+			validateLoginForm() {
+				// 验证账号（手机号或用户名）
+				if (!this.validateAccount(this.loginForm.account)) {
+					return false
+				}
+				
+				// 验证密码
+				if (!this.validatePassword(this.loginForm.password)) {
+					return false
+				}
+				
+				return true
+			},
+			
+			// 验证注册表单
+			validateRegisterForm() {
+				// 验证用户名
+				if (!this.validateUsername(this.registerForm.username)) {
+					return false
+				}
+				
+				// 验证手机号
+				if (!this.validatePhone(this.registerForm.phone)) {
+					return false
+				}
+				
+				// 验证验证码
+				if (!this.validateVerifyCode(this.registerForm.verifyCode)) {
+					return false
+				}
+				
+				// 验证密码
+				if (!this.validatePassword(this.registerForm.password, true)) {
+					return false
+				}
+				
+				// 验证确认密码
+				if (!this.validateConfirmPassword(this.registerForm.password, this.registerForm.confirmPassword)) {
+					return false
+				}
+				
+				// 验证用户协议
+				if (!this.registerForm.agreeTerms) {
+					uni.showToast({
+						title: '请阅读并同意用户协议',
+						icon: 'none'
+					})
+					return false
+				}
+				
+				return true
+			},
+			
+			// 处理登录
+			handleLogin() {
+				// 清除之前可能存在的错误信息
+				this.clearErrors()
+				
+				// 检查是否是测试账号
+				if ((this.loginForm.account === 'admin' || this.loginForm.account === 'admin123') && this.loginForm.password === 'admin123') {
+					// 创建管理员用户信息对象
+					const userInfo = {
+						isLogin: true,
+						memberId: 'ADMIN',
+						nickname: '管理员',
+						level: 5, // 钻石会员（最高级别）
+						points: 9999,
+						balance: 9999.99,
+						teamCount: 100,
+						inviteCode: 'ADMIN',
+						phone: 'admin',
+						username: 'admin',
+						isAdmin: true // 标记为管理员
+					}
+					
+					// 保存用户信息到本地存储
+					try {
+						// 先清除旧的用户信息
+						uni.removeStorageSync('userInfo')
+						// 再保存新的用户信息
+						uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+						
+						// 显示登录成功提示
+						uni.showToast({
+							title: '管理员登录成功',
+							icon: 'success',
+							duration: 2000
+						})
+						
+						// 延迟跳转到会员中心
+						setTimeout(() => {
+							// 确保页面正确跳转
+							try {
+								uni.navigateBack()
+							} catch (e) {
+								console.error('页面跳转失败', e)
+								// 如果返回失败，则直接跳转到会员中心
+								uni.reLaunch({
+									url: '/pages/member/index'
+								})
+							}
+						}, 1500)
+					} catch (e) {
+						console.error('保存用户信息失败', e)
+						uni.showToast({
+							title: '登录失败，请重试',
+							icon: 'none'
+						})
+					}
+					return
+				}
+				
+				// 验证表单
+				if (!this.validateLoginForm()) {
+					return
+				}
+				
+				// 模拟登录成功
+				console.log('登录信息:', this.loginForm)
+				
+				// 创建用户信息对象
+				const userInfo = {
+					isLogin: true,
+					memberId: 'M10086',
+					nickname: '张三',
+					level: 2, // 白银会员
+					points: 1250,
+					balance: 358.65,
+					teamCount: 3,
+					inviteCode: 'BX8888',
+					phone: /^1\d{10}$/.test(this.loginForm.account) ? this.loginForm.account : '',
+					username: !/^1\d{10}$/.test(this.loginForm.account) ? this.loginForm.account : ''
+				}
+				
+				// 保存用户信息到本地存储
+				try {
+					// 先清除旧的用户信息
+					uni.removeStorageSync('userInfo')
+					// 再保存新的用户信息
+					uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+					
+					// 显示登录成功提示
+					uni.showToast({
+						title: '登录成功',
+						icon: 'success',
+						duration: 2000
+					})
+					
+					// 延迟跳转到会员中心
+					setTimeout(() => {
+						uni.navigateBack()
+					}, 1500)
+				} catch (e) {
+					console.error('保存用户信息失败', e)
+					uni.showToast({
+						title: '登录失败，请重试',
+						icon: 'none'
+					})
+				}
+			},
+			
+			// 处理注册
+			handleRegister() {
+				// 清除之前可能存在的错误信息
+				this.clearErrors()
+				
+				// 验证表单
+				if (!this.validateRegisterForm()) {
+					return
+				}
+				
+				// 模拟注册成功
+				console.log('注册信息:', this.registerForm)
+				
+				// 创建新用户信息对象
+				const userInfo = {
+					isLogin: true,
+					memberId: 'M' + Math.floor(10000 + Math.random() * 90000),
+					nickname: this.registerForm.username || '用户' + this.registerForm.phone.substring(7),
+					level: 0, // 普通用户
+					points: 100, // 注册奖励积分
+					balance: 0,
+					teamCount: 0,
+					inviteCode: 'BX' + Math.floor(1000 + Math.random() * 9000),
+					phone: this.registerForm.phone,
+					username: this.registerForm.username
+				}
+				
+				// 保存用户信息到本地存储
+				try {
+					// 先清除旧的用户信息
+					uni.removeStorageSync('userInfo')
+					// 再保存新的用户信息
+					uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+					
+					// 显示注册成功提示
+					uni.showToast({
+						title: '注册成功',
+						icon: 'success',
+						duration: 2000
+					})
+					
+					// 延迟跳转到会员中心
+					setTimeout(() => {
+						uni.navigateBack()
+					}, 1500)
+				} catch (e) {
+					console.error('保存用户信息失败', e)
+					uni.showToast({
+						title: '注册失败，请重试',
+						icon: 'none'
+					})
+				}
+			},
+			
+			// 忘记密码
+			forgotPassword() {
+				uni.navigateTo({
+					url: '/pages/member/forgot-password'
+				})
+			},
+			
+			// 处理微信登录
+			handleWechatLogin() {
+				// 显示加载提示
+				uni.showLoading({
+					title: '正在请求授权'
+				})
+				
+				// 调用微信登录接口
+				uni.login({
+					provider: 'weixin',
+					success: (loginRes) => {
+						console.log('微信登录成功', loginRes)
+						
+						// 获取用户信息
+						uni.getUserInfo({
+							provider: 'weixin',
+							success: (infoRes) => {
+								console.log('获取用户信息成功', infoRes)
+								this.wxUserInfo = infoRes.userInfo
+								
+								// 获取微信手机号
+								this.getWxPhoneNumber()
+							},
+							fail: (err) => {
+								console.error('获取用户信息失败', err)
+								uni.hideLoading()
+								uni.showToast({
+									title: '获取用户信息失败',
+									icon: 'none'
+								})
+							}
+						})
+					},
+					fail: (err) => {
+						console.error('微信登录失败', err)
+						uni.hideLoading()
+						uni.showToast({
+							title: '微信登录失败',
+							icon: 'none'
+						})
+					}
+				})
+			},
+			
+			// 获取微信手机号
+			getWxPhoneNumber() {
+				// 实际项目中需要调用微信的接口获取手机号
+				// 这里模拟获取手机号的过程
+				setTimeout(() => {
+					uni.hideLoading()
+					
+					// 模拟微信登录成功
+					const userInfo = {
+						isLogin: true,
+						memberId: 'WX' + Math.floor(10000 + Math.random() * 90000),
+						nickname: this.wxUserInfo ? this.wxUserInfo.nickName : '微信用户',
+						level: 1, // 默认为铜牌会员
+						points: 200, // 微信注册奖励积分
+						balance: 0,
+						teamCount: 0,
+						inviteCode: 'BX' + Math.floor(1000 + Math.random() * 9000),
+						phone: '13' + Math.floor(100000000 + Math.random() * 900000000), // 模拟手机号
+						username: '',
+						avatarUrl: this.wxUserInfo ? this.wxUserInfo.avatarUrl : ''
+					}
+					
+					// 保存用户信息到本地存储
+					try {
+						// 先清除旧的用户信息
+						uni.removeStorageSync('userInfo')
+						// 再保存新的用户信息
+						uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+						
+						// 显示登录成功提示
+						uni.showToast({
+							title: '微信登录成功',
+							icon: 'success',
+							duration: 2000
+						})
+						
+						// 延迟跳转到会员中心
+						setTimeout(() => {
+							uni.navigateBack()
+						}, 1500)
+					} catch (e) {
+						console.error('保存用户信息失败', e)
+						uni.showToast({
+							title: '登录失败，请重试',
+							icon: 'none'
+						})
+					}
+				}, 1500)
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		min-height: 100vh;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 表单区域 */
+	.form-container {
+		padding: 20px;
+	}
+	
+	.form-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 20px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.form-item {
+		margin-bottom: 20px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #333333;
+		margin-bottom: 8px;
+	}
+	
+	.form-input {
+		height: 45px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 6px;
+		padding: 0 15px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.verify-code-container {
+		flex-direction: row;
+	}
+	
+	.verify-input {
+		flex: 1;
+		margin-right: 10px;
+	}
+	
+	.verify-button {
+		width: 120px;
+		height: 45px;
+		line-height: 45px;
+		font-size: 12px;
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		border-radius: 6px;
+	}
+	
+	.verify-button:disabled {
+		background-color: #CCCCCC;
+	}
+	
+	.button-container {
+		margin-top: 30px;
+		margin-bottom: 20px;
+	}
+	
+	.primary-button {
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		height: 45px;
+		line-height: 45px;
+		border-radius: 22.5px;
+		box-shadow: 0 6px 12px rgba(30,144,255,0.3);
+	}
+	
+	.primary-button:active {
+		transform: scale(0.98);
+		box-shadow: 0 3px 6px rgba(30,144,255,0.2);
+	}
+	
+	.options-container {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 20px;
+	}
+	
+	.option-link {
+		font-size: 14px;
+		color: #1E90FF;
+	}
+	
+	.agreement-container {
+		flex-direction: row;
+		align-items: center;
+	}
+	
+	.agreement-checkbox {
+		margin-right: 5px;
+	}
+	
+	.agreement-text {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	.agreement-link {
+		color: #1E90FF;
+	}
+	
+	/* 错误提示样式 */
+	.error-text {
+		font-size: 12px;
+		color: #FF3B30;
+		margin-top: 5px;
+	}
+	
+	/* 微信登录样式 */
+	.wechat-login-container {
+		margin-top: 10px;
+		margin-bottom: 20px;
+	}
+	
+	.wechat-button {
+		background-color: #07C160;
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		height: 45px;
+		line-height: 45px;
+		border-radius: 22.5px;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.wechat-icon {
+		margin-right: 5px;
+		font-weight: bold;
+	}
+	
+	.wechat-text {
+		color: #FFFFFF;
+	}
+</style>

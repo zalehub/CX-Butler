@@ -1,0 +1,213 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">车险出单</text>
+		</view>
+		
+		<view class="content">
+			<view class="form-section">
+				<text class="section-title">车辆信息</text>
+				<view class="form-item">
+					<text class="form-label">车牌号码</text>
+					<input class="form-input" placeholder="请输入车牌号码" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">车辆型号</text>
+					<input class="form-input" placeholder="请输入车辆型号" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">初登日期</text>
+					<input class="form-input" placeholder="请选择初登日期" />
+				</view>
+			</view>
+			
+			<view class="form-section">
+				<text class="section-title">投保人信息</text>
+				<view class="form-item">
+					<text class="form-label">姓名</text>
+					<input class="form-input" placeholder="请输入姓名" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">身份证号</text>
+					<input class="form-input" placeholder="请输入身份证号" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">手机号码</text>
+					<input class="form-input" placeholder="请输入手机号码" />
+				</view>
+			</view>
+			
+			<view class="form-section">
+				<text class="section-title">保险选择</text>
+				<view class="insurance-options">
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">交强险</text>
+					</view>
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">车损险</text>
+					</view>
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">第三者责任险</text>
+					</view>
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">盗抢险</text>
+					</view>
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">车上人员责任险</text>
+					</view>
+					<view class="insurance-option">
+						<checkbox class="option-checkbox" />
+						<text class="option-text">玻璃单独破碎险</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="price-section">
+				<text class="price-title">预估保费</text>
+				<text class="price-value">¥2,580.00</text>
+			</view>
+			
+			<button class="submit-btn" type="primary">提交投保</button>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '车险出单'
+			}
+		},
+		onLoad() {
+			console.log('车险出单页面加载')
+		},
+		methods: {
+			// 这里可以添加表单提交等方法
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	.form-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 15px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.form-item {
+		flex-direction: column;
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-input {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		padding: 0 10px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+	}
+	
+	.insurance-options {
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+	
+	.insurance-option {
+		flex-direction: row;
+		align-items: center;
+		width: 48%;
+		margin-bottom: 10px;
+		padding: 8px;
+		background-color: #F8F8F8;
+		border-radius: 5px;
+	}
+	
+	.option-checkbox {
+		margin-right: 5px;
+	}
+	
+	.option-text {
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	.price-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 15px;
+		margin-bottom: 20px;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.price-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.price-value {
+		font-size: 20px;
+		font-weight: bold;
+		color: #FF6600;
+	}
+	
+	.submit-btn {
+		height: 45px;
+		background-color: #1E90FF;
+		border-radius: 22.5px;
+		font-size: 16px;
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+</style>

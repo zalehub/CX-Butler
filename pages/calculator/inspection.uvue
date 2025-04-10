@@ -1,0 +1,422 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">检车计算器</text>
+		</view>
+		
+		<view class="content">
+			<view class="calculator-card">
+				<text class="card-title">车辆检验费用计算</text>
+				<text class="card-desc">计算车辆年检所需费用</text>
+				
+				<view class="form-section">
+					<view class="form-item">
+						<text class="form-label">车辆类型</text>
+						<picker class="form-picker" :range="vehicleTypes" @change="onVehicleTypeChange">
+							<view class="picker-value">
+								<text>{{vehicleTypes[selectedVehicleTypeIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">车辆使用年限</text>
+						<picker class="form-picker" :range="vehicleAges" @change="onVehicleAgeChange">
+							<view class="picker-value">
+								<text>{{vehicleAges[selectedVehicleAgeIndex]}}</text>
+							</view>
+						</picker>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">是否为营运车辆</text>
+						<view class="radio-group">
+							<view class="radio-item" @click="isCommercial = true">
+								<view class="radio-button" :class="{active: isCommercial}"></view>
+								<text class="radio-label">是</text>
+							</view>
+							<view class="radio-item" @click="isCommercial = false">
+								<view class="radio-button" :class="{active: !isCommercial}"></view>
+								<text class="radio-label">否</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">是否需要上线检测</text>
+						<view class="radio-group">
+							<view class="radio-item" @click="needsInspection = true">
+								<view class="radio-button" :class="{active: needsInspection}"></view>
+								<text class="radio-label">是</text>
+							</view>
+							<view class="radio-item" @click="needsInspection = false">
+								<view class="radio-button" :class="{active: !needsInspection}"></view>
+								<text class="radio-label">否</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="form-item">
+						<text class="form-label">是否需要环保检测</text>
+						<view class="radio-group">
+							<view class="radio-item" @click="needsEnvironmentalTest = true">
+								<view class="radio-button" :class="{active: needsEnvironmentalTest}"></view>
+								<text class="radio-label">是</text>
+							</view>
+							<view class="radio-item" @click="needsEnvironmentalTest = false">
+								<view class="radio-button" :class="{active: !needsEnvironmentalTest}"></view>
+								<text class="radio-label">否</text>
+							</view>
+						</view>
+					</view>
+				</view>
+				
+				<button class="calculate-btn" type="primary" @click="calculateFee">计算费用</button>
+			</view>
+			
+			<view class="result-card" v-if="showResult">
+				<text class="result-title">计算结果</text>
+				
+				<view class="result-item">
+					<text class="result-label">检验费：</text>
+					<text class="result-value">{{inspectionFee}} 元</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">环保检测费：</text>
+					<text class="result-value">{{environmentalFee}} 元</text>
+				</view>
+				
+				<view class="result-item">
+					<text class="result-label">代办服务费：</text>
+					<text class="result-value">{{serviceFee}} 元</text>
+				</view>
+				
+				<view class="result-item highlight">
+					<text class="result-label">总费用：</text>
+					<text class="result-value highlight">{{totalFee}} 元</text>
+				</view>
+				
+				<view class="inspection-note">
+					<text class="note-title">检车须知：</text>
+					<text class="note-text">1. 私家车6年内每2年检验1次，6年后每年检验1次</text>
+					<text class="note-text">2. 营运车辆每年检验1次</text>
+					<text class="note-text">3. 检车时需携带行驶证、交强险保单、身份证</text>
+					<text class="note-text">4. 检车前请确保车辆技术状况良好，无明显安全隐患</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '检车计算器',
+				vehicleTypes: ['小型轿车', '小型客车', '中型客车', '大型客车', '小型货车', '中型货车', '大型货车'],
+				selectedVehicleTypeIndex: 0,
+				vehicleAges: ['不足6年', '6-10年', '10-15年', '15年以上'],
+				selectedVehicleAgeIndex: 0,
+				isCommercial: false,
+				needsInspection: true,
+				needsEnvironmentalTest: true,
+				showResult: false,
+				inspectionFee: 0,
+				environmentalFee: 0,
+				serviceFee: 0,
+				totalFee: 0
+			}
+		},
+		onLoad() {
+			console.log('检车计算器页面加载')
+		},
+		methods: {
+			// 车辆类型变化
+			onVehicleTypeChange(e) {
+				this.selectedVehicleTypeIndex = e.detail.value;
+			},
+			
+			// 车辆年限变化
+			onVehicleAgeChange(e) {
+				this.selectedVehicleAgeIndex = e.detail.value;
+				
+				// 根据车辆年限自动设置是否需要上线检测
+				if (this.selectedVehicleAgeIndex >= 1) { // 6年以上
+					this.needsInspection = true;
+				}
+			},
+			
+			// 计算费用
+			calculateFee() {
+				// 基础检验费
+				let baseFee = 0;
+				switch(this.selectedVehicleTypeIndex) {
+					case 0: // 小型轿车
+					case 1: // 小型客车
+						baseFee = 100;
+						break;
+					case 2: // 中型客车
+						baseFee = 150;
+						break;
+					case 3: // 大型客车
+						baseFee = 200;
+						break;
+					case 4: // 小型货车
+						baseFee = 120;
+						break;
+					case 5: // 中型货车
+						baseFee = 180;
+						break;
+					case 6: // 大型货车
+						baseFee = 220;
+						break;
+				}
+				
+				// 根据车辆年限调整费用
+				let ageFactor = 1.0;
+				switch(this.selectedVehicleAgeIndex) {
+					case 0: // 不足6年
+						ageFactor = 1.0;
+						break;
+					case 1: // 6-10年
+						ageFactor = 1.2;
+						break;
+					case 2: // 10-15年
+						ageFactor = 1.5;
+						break;
+					case 3: // 15年以上
+						ageFactor = 2.0;
+						break;
+				}
+				
+				// 营运车辆额外费用
+				let commercialFactor = this.isCommercial ? 1.5 : 1.0;
+				
+				// 计算检验费
+				this.inspectionFee = this.needsInspection ? Math.round(baseFee * ageFactor * commercialFactor) : 0;
+				
+				// 环保检测费
+				this.environmentalFee = this.needsEnvironmentalTest ? 50 : 0;
+				
+				// 代办服务费
+				this.serviceFee = 80;
+				
+				// 总费用
+				this.totalFee = this.inspectionFee + this.environmentalFee + this.serviceFee;
+				
+				// 显示结果
+				this.showResult = true;
+				
+				console.log('计算结果:', {
+					检验费: this.inspectionFee,
+					环保检测费: this.environmentalFee,
+					代办服务费: this.serviceFee,
+					总费用: this.totalFee
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	/* 计算器卡片样式 */
+	.calculator-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.card-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.card-desc {
+		font-size: 14px;
+		color: #999999;
+		margin-bottom: 20px;
+	}
+	
+	.form-section {
+		flex-direction: column;
+		margin-bottom: 20px;
+	}
+	
+	.form-item {
+		flex-direction: column;
+		margin-bottom: 15px;
+	}
+	
+	.form-label {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.form-picker {
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 5px;
+		background-color: #F8F8F8;
+		justify-content: center;
+	}
+	
+	.picker-value {
+		height: 40px;
+		line-height: 40px;
+		padding: 0 10px;
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	/* 单选按钮样式 */
+	.radio-group {
+		flex-direction: row;
+		margin-top: 5px;
+	}
+	
+	.radio-item {
+		flex-direction: row;
+		align-items: center;
+		margin-right: 30px;
+	}
+	
+	.radio-button {
+		width: 20px;
+		height: 20px;
+		border-radius: 10px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		margin-right: 5px;
+		position: relative;
+	}
+	
+	.radio-button.active {
+		border-color: #1E90FF;
+	}
+	
+	.radio-button.active::after {
+		content: '';
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		border-radius: 6px;
+		background-color: #1E90FF;
+		top: 3px;
+		left: 3px;
+	}
+	
+	.radio-label {
+		font-size: 14px;
+		color: #333333;
+	}
+	
+	.calculate-btn {
+		height: 45px;
+		background-color: #1E90FF;
+		border-radius: 22.5px;
+		font-size: 16px;
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+	
+	/* 结果卡片样式 */
+	.result-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 20px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.result-title {
+		font-size: 18px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 15px;
+	}
+	
+	.result-item {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.result-item.highlight {
+		border-bottom-width: 0;
+		background-color: #F0F8FF;
+		padding: 10px;
+		border-radius: 5px;
+		margin: 10px 0;
+	}
+	
+	.result-label {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.result-value {
+		font-size: 14px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	.result-value.highlight {
+		color: #1E90FF;
+		font-size: 16px;
+	}
+	
+	/* 检车须知样式 */
+	.inspection-note {
+		margin-top: 20px;
+		padding-top: 15px;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+	}
+	
+	.note-title {
+		font-size: 14px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 10px;
+	}
+	
+	.note-text {
+		font-size: 12px;
+		color: #666666;
+		line-height: 1.5;
+		margin-bottom: 5px;
+	}
+</style>

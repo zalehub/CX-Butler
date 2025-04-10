@@ -1,0 +1,22 @@
+{
+  "name": "quanneiren",
+  "version": "1.0.0",
+  "description": "保险代理人平台",
+  "main": "main.uts",
+  "scripts": {
+    "dev": "uni",
+    "build": "uni build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "insurance",
+    "uni-app",
+    "uni-app-x"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

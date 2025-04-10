@@ -1,0 +1,529 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">我的团队</text>
+		</view>
+		
+		<!-- 团队数据概览 -->
+		<view class="team-overview">
+			<view class="overview-card">
+				<view class="overview-item">
+					<text class="overview-value">{{teamData.totalMembers}}</text>
+					<text class="overview-label">团队总人数</text>
+				</view>
+				<view class="overview-item">
+					<text class="overview-value">{{teamData.directMembers}}</text>
+					<text class="overview-label">直属成员</text>
+				</view>
+				<view class="overview-item">
+					<text class="overview-value">{{teamData.indirectMembers}}</text>
+					<text class="overview-label">间接成员</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 佣金统计 -->
+		<view class="commission-stats">
+			<view class="stats-card">
+				<view class="stats-header">
+					<text class="stats-title">佣金统计</text>
+					<text class="stats-more" @click="navigateTo('commission')">查看明细 ></text>
+				</view>
+				<view class="stats-content">
+					<view class="stats-item">
+						<text class="stats-label">本月佣金</text>
+						<text class="stats-value highlight">¥{{teamData.monthCommission}}</text>
+					</view>
+					<view class="stats-item">
+						<text class="stats-label">累计佣金</text>
+						<text class="stats-value">¥{{teamData.totalCommission}}</text>
+					</view>
+					<view class="stats-item">
+						<text class="stats-label">待结算佣金</text>
+						<text class="stats-value">¥{{teamData.pendingCommission}}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 团队成员列表 -->
+		<view class="team-members">
+			<view class="tab-header">
+				<view class="tab-item" :class="{active: activeTab === 'all'}" @click="switchTab('all')">
+					<text class="tab-text">全部成员</text>
+				</view>
+				<view class="tab-item" :class="{active: activeTab === 'direct'}" @click="switchTab('direct')">
+					<text class="tab-text">直属成员</text>
+				</view>
+				<view class="tab-item" :class="{active: activeTab === 'indirect'}" @click="switchTab('indirect')">
+					<text class="tab-text">间接成员</text>
+				</view>
+			</view>
+			
+			<view class="member-list">
+				<view v-if="filteredMembers.length === 0" class="empty-state">
+					<text class="empty-text">暂无团队成员</text>
+					<button class="invite-btn" @click="navigateTo('invite')">邀请好友</button>
+				</view>
+				
+				<view v-for="(member, index) in filteredMembers" :key="index" class="member-item">
+					<view class="member-avatar">
+						<text class="member-level">{{getLevelTag(member.level)}}</text>
+					</view>
+					<view class="member-info">
+						<view class="member-row">
+							<text class="member-name">{{member.nickname}}</text>
+							<text class="member-tag" v-if="member.relation === 'direct'">直属</text>
+							<text class="member-tag indirect" v-else>间接</text>
+						</view>
+						<view class="member-row">
+							<text class="member-id">ID: {{member.memberId}}</text>
+							<text class="member-date">加入时间: {{member.joinDate}}</text>
+						</view>
+						<view class="member-row">
+							<text class="member-contribution">贡献佣金: ¥{{member.contribution}}</text>
+							<text class="member-orders">订单数: {{member.orderCount}}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 分销规则说明 -->
+		<view class="rules-section">
+			<text class="section-title">分销规则说明</text>
+			<view class="rules-content">
+				<text class="rule-item">1. 分销体系为二级分销模式，包含直属成员和间接成员。</text>
+				<text class="rule-item">2. 直属成员：通过您的邀请码直接注册的会员。</text>
+				<text class="rule-item">3. 间接成员：您的直属成员邀请的会员。</text>
+				<text class="rule-item">4. 佣金比例：根据您的会员等级不同，获得不同比例的佣金。</text>
+				<text class="rule-item">5. 直属成员消费，您可获得对应等级的佣金比例。</text>
+				<text class="rule-item">6. 间接成员消费，您可获得对应等级佣金比例的50%。</text>
+				<text class="rule-item">7. 佣金结算周期为每月1日，结算上月佣金。</text>
+				<text class="rule-item">8. 本平台保留对分销规则的最终解释权。</text>
+			</view>
+		</view>
+		
+		<!-- 邀请按钮 -->
+		<view class="invite-container">
+			<button class="invite-button" @click="navigateTo('invite')">邀请好友加入</button>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '我的团队',
+				// 当前激活的标签
+				activeTab: 'all',
+				// 团队数据
+				teamData: {
+					totalMembers: 0,
+					directMembers: 0,
+					indirectMembers: 0,
+					monthCommission: 0,
+					totalCommission: 0,
+					pendingCommission: 0
+				},
+				// 团队成员列表
+				members: []
+			}
+		},
+		computed: {
+			// 根据当前标签筛选成员
+			filteredMembers() {
+				if (this.activeTab === 'all') {
+					return this.members
+				} else if (this.activeTab === 'direct') {
+					return this.members.filter(member => member.relation === 'direct')
+				} else {
+					return this.members.filter(member => member.relation === 'indirect')
+				}
+			}
+		},
+		onLoad() {
+			console.log('团队页面加载')
+			// 加载团队数据
+			this.loadTeamData()
+		},
+		methods: {
+			// 加载团队数据
+			loadTeamData() {
+				// 模拟团队数据
+				const mockTeamData = {
+					totalMembers: 5,
+					directMembers: 3,
+					indirectMembers: 2,
+					monthCommission: 358.65,
+					totalCommission: 1286.42,
+					pendingCommission: 125.80
+				}
+				
+				// 模拟团队成员列表
+				const mockMembers = [
+					{
+						memberId: 'M10087',
+						nickname: '李四',
+						level: 1, // 青铜会员
+						relation: 'direct',
+						joinDate: '2023-05-15',
+						contribution: 156.80,
+						orderCount: 3
+					},
+					{
+						memberId: 'M10088',
+						nickname: '王五',
+						level: 2, // 白银会员
+						relation: 'direct',
+						joinDate: '2023-06-20',
+						contribution: 428.50,
+						orderCount: 5
+					},
+					{
+						memberId: 'M10089',
+						nickname: '赵六',
+						level: 0, // 普通用户
+						relation: 'direct',
+						joinDate: '2023-07-05',
+						contribution: 89.90,
+						orderCount: 1
+					},
+					{
+						memberId: 'M10090',
+						nickname: '钱七',
+						level: 1, // 青铜会员
+						relation: 'indirect',
+						joinDate: '2023-08-12',
+						contribution: 65.30,
+						orderCount: 2
+					},
+					{
+						memberId: 'M10091',
+						nickname: '孙八',
+						level: 0, // 普通用户
+						relation: 'indirect',
+						joinDate: '2023-09-01',
+						contribution: 45.20,
+						orderCount: 1
+					}
+				]
+				
+				// 更新数据
+				this.teamData = mockTeamData
+				this.members = mockMembers
+			},
+			
+			// 切换标签
+			switchTab(tab) {
+				this.activeTab = tab
+			},
+			
+			// 获取会员等级标签
+			getLevelTag(level) {
+				const levelTags = ['普', '铜', '银', '金', '铂', '钻']
+				return levelTags[level] || '普'
+			},
+			
+			// 导航到其他页面
+			navigateTo(page) {
+				const pageMap = {
+					commission: '/pages/member/commission',
+					invite: '/pages/member/invite'
+				}
+				
+				if (pageMap[page]) {
+					uni.navigateTo({
+						url: pageMap[page]
+					})
+				}
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 团队数据概览 */
+	.team-overview {
+		padding: 15px;
+	}
+	
+	.overview-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		flex-direction: row;
+		justify-content: space-around;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.overview-item {
+		align-items: center;
+	}
+	
+	.overview-value {
+		font-size: 20px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.overview-label {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	/* 佣金统计 */
+	.commission-stats {
+		padding: 0 15px 15px;
+	}
+	
+	.stats-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.stats-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.stats-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.stats-more {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	.stats-content {
+		flex-direction: row;
+		justify-content: space-around;
+	}
+	
+	.stats-item {
+		align-items: center;
+	}
+	
+	.stats-label {
+		font-size: 12px;
+		color: #666666;
+		margin-bottom: 5px;
+	}
+	
+	.stats-value {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.stats-value.highlight {
+		color: #FF6600;
+	}
+	
+	/* 团队成员列表 */
+	.team-members {
+		margin: 0 15px 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		overflow: hidden;
+	}
+	
+	.tab-header {
+		flex-direction: row;
+		height: 45px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.tab-item {
+		flex: 1;
+		height: 45px;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.tab-item.active {
+		border-bottom-width: 2px;
+		border-bottom-color: #1E90FF;
+	}
+	
+	.tab-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.tab-item.active .tab-text {
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	.member-list {
+		padding: 15px;
+	}
+	
+	.empty-state {
+		align-items: center;
+		padding: 30px 0;
+	}
+	
+	.empty-text {
+		font-size: 14px;
+		color: #999999;
+		margin-bottom: 15px;
+	}
+	
+	.invite-btn {
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		font-size: 14px;
+		padding: 5px 15px;
+		border-radius: 15px;
+	}
+	
+	.member-item {
+		flex-direction: row;
+		padding: 15px 0;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.member-item:last-child {
+		border-bottom-width: 0;
+	}
+	
+	.member-avatar {
+		width: 50px;
+		height: 50px;
+		border-radius: 25px;
+		background-color: #F0F0F0;
+		justify-content: center;
+		align-items: center;
+		margin-right: 15px;
+	}
+	
+	.member-level {
+		font-size: 18px;
+		font-weight: bold;
+		color: #1E90FF;
+	}
+	
+	.member-info {
+		flex: 1;
+	}
+	
+	.member-row {
+		flex-direction: row;
+		justify-content: space-between;
+		margin-bottom: 5px;
+	}
+	
+	.member-name {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.member-tag {
+		font-size: 12px;
+		color: #FFFFFF;
+		background-color: #1E90FF;
+		padding: 2px 6px;
+		border-radius: 10px;
+	}
+	
+	.member-tag.indirect {
+		background-color: #FF9500;
+	}
+	
+	.member-id, .member-date {
+		font-size: 12px;
+		color: #999999;
+	}
+	
+	.member-contribution, .member-orders {
+		font-size: 12px;
+		color: #666666;
+	}
+	
+	/* 分销规则说明 */
+	.rules-section {
+		margin: 0 15px 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 10px;
+	}
+	
+	.rules-content {
+		padding: 5px 0;
+	}
+	
+	.rule-item {
+		font-size: 13px;
+		color: #666666;
+		line-height: 20px;
+		margin-bottom: 8px;
+	}
+	
+	/* 邀请按钮 */
+	.invite-container {
+		padding: 15px;
+	}
+	
+	.invite-button {
+		background-color: #1E90FF;
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: bold;
+		height: 45px;
+		line-height: 45px;
+		border-radius: 22.5px;
+		box-shadow: 0 6px 12px rgba(30,144,255,0.3);
+	}
+	
+	.invite-button:active {
+		transform: scale(0.98);
+		box-shadow: 0 3px 6px rgba(30,144,255,0.2);
+	}
+</style>

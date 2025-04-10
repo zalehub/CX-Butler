@@ -1,0 +1,389 @@
+<template>
+	<view class="container">
+		<view class="header">
+			<text class="header-title">保单查询</text>
+		</view>
+		
+		<view class="content">
+			<!-- 搜索区域 -->
+			<view class="search-section">
+				<view class="search-bar">
+					<input class="search-input" placeholder="请输入保单号或客户姓名" v-model="searchKey" />
+					<button class="search-btn" type="primary" size="mini" @click="searchPolicy">查询</button>
+				</view>
+				<view class="filter-tabs">
+					<view class="filter-tab" :class="{active: activeTab === 'all'}" @click="switchTab('all')">
+						<text class="tab-text">全部</text>
+					</view>
+					<view class="filter-tab" :class="{active: activeTab === 'car'}" @click="switchTab('car')">
+						<text class="tab-text">车险</text>
+					</view>
+					<view class="filter-tab" :class="{active: activeTab === 'health'}" @click="switchTab('health')">
+						<text class="tab-text">健康险</text>
+					</view>
+					<view class="filter-tab" :class="{active: activeTab === 'group'}" @click="switchTab('group')">
+						<text class="tab-text">团险</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 保单列表 -->
+			<view class="policy-list">
+				<view class="policy-card" v-for="(item, index) in filteredPolicies" :key="index" @click="viewPolicyDetail(item)">
+					<view class="policy-header">
+						<text class="policy-number">{{item.policyNumber}}</text>
+						<text class="policy-status" :class="item.statusClass">{{item.status}}</text>
+					</view>
+					<view class="policy-info">
+						<view class="info-item">
+							<text class="info-label">投保人：</text>
+							<text class="info-value">{{item.holder}}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">保险类型：</text>
+							<text class="info-value">{{item.type}}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">保险期限：</text>
+							<text class="info-value">{{item.period}}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">保险金额：</text>
+							<text class="info-value">{{item.amount}}</text>
+						</view>
+					</view>
+					<view class="policy-footer">
+						<text class="policy-date">生效日期：{{item.effectiveDate}}</text>
+						<button class="detail-btn" type="primary" size="mini" @click.stop="viewPolicyDetail(item)">查看详情</button>
+					</view>
+				</view>
+				
+				<!-- 无数据提示 -->
+				<view class="empty-tip" v-if="filteredPolicies.length === 0">
+					<image class="empty-icon" src="/static/notification.svg"></image>
+					<text class="empty-text">暂无保单数据</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '保单查询',
+				searchKey: '',
+				activeTab: 'all',
+				policies: [
+					{
+						id: 1,
+						policyNumber: 'CXBX20250327001',
+						holder: '张三',
+						type: '车险',
+						period: '2025-03-27至2026-03-26',
+						amount: '¥50,000',
+						status: '有效',
+						statusClass: 'status-active',
+						effectiveDate: '2025-03-27',
+						category: 'car'
+					},
+					{
+						id: 2,
+						policyNumber: 'JKBX20250315002',
+						holder: '李四',
+						type: '重疾险',
+						period: '2025-03-15至2055-03-14',
+						amount: '¥300,000',
+						status: '有效',
+						statusClass: 'status-active',
+						effectiveDate: '2025-03-15',
+						category: 'health'
+					},
+					{
+						id: 3,
+						policyNumber: 'TBBX20250220003',
+						holder: '王五',
+						type: '团体意外险',
+						period: '2025-02-20至2026-02-19',
+						amount: '¥1,000,000',
+						status: '有效',
+						statusClass: 'status-active',
+						effectiveDate: '2025-02-20',
+						category: 'group'
+					},
+					{
+						id: 4,
+						policyNumber: 'CXBX20240327004',
+						holder: '赵六',
+						type: '车险',
+						period: '2024-03-27至2025-03-26',
+						amount: '¥60,000',
+						status: '即将到期',
+						statusClass: 'status-expiring',
+						effectiveDate: '2024-03-27',
+						category: 'car'
+					},
+					{
+						id: 5,
+						policyNumber: 'JKBX20240115005',
+						holder: '孙七',
+						type: '医疗险',
+						period: '2024-01-15至2025-01-14',
+						amount: '¥100,000',
+						status: '已过期',
+						statusClass: 'status-expired',
+						effectiveDate: '2024-01-15',
+						category: 'health'
+					}
+				]
+			}
+		},
+		computed: {
+			filteredPolicies() {
+				// 先按类型筛选
+				let result = this.policies;
+				if (this.activeTab !== 'all') {
+					result = result.filter(item => item.category === this.activeTab);
+				}
+				
+				// 再按搜索关键词筛选
+				if (this.searchKey) {
+					const key = this.searchKey.toLowerCase();
+					result = result.filter(item => 
+						item.policyNumber.toLowerCase().includes(key) || 
+						item.holder.toLowerCase().includes(key)
+					);
+				}
+				
+				return result;
+			}
+		},
+		onLoad() {
+			console.log('保单查询页面加载')
+		},
+		methods: {
+			// 切换标签
+			switchTab(tab) {
+				this.activeTab = tab;
+				console.log('切换到标签:', tab);
+			},
+			
+			// 搜索保单
+			searchPolicy() {
+				console.log('搜索关键词:', this.searchKey);
+			},
+			
+			// 查看保单详情
+			viewPolicyDetail(item) {
+				console.log('查看保单详情:', item.id);
+				uni.showToast({
+					title: '查看保单: ' + item.policyNumber,
+					icon: 'none'
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.content {
+		padding: 15px;
+		flex-direction: column;
+	}
+	
+	/* 搜索区域样式 */
+	.search-section {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 15px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	
+	.search-bar {
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 15px;
+	}
+	
+	.search-input {
+		flex: 1;
+		height: 40px;
+		border-width: 1px;
+		border-color: #DDDDDD;
+		border-radius: 20px;
+		padding: 0 15px;
+		font-size: 14px;
+		background-color: #F8F8F8;
+		margin-right: 10px;
+	}
+	
+	.search-btn {
+		background-color: #1E90FF;
+		border-radius: 20px;
+		height: 40px;
+		line-height: 40px;
+	}
+	
+	.filter-tabs {
+		flex-direction: row;
+		justify-content: space-around;
+	}
+	
+	.filter-tab {
+		padding: 8px 15px;
+		border-radius: 20px;
+		transition: all 0.3s;
+	}
+	
+	.filter-tab.active {
+		background-color: #1E90FF;
+	}
+	
+	.tab-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.filter-tab.active .tab-text {
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+	
+	/* 保单列表样式 */
+	.policy-list {
+		flex-direction: column;
+	}
+	
+	.policy-card {
+		background-color: #FFFFFF;
+		border-radius: 10px;
+		padding: 15px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+		transition: transform 0.3s, box-shadow 0.3s;
+	}
+	
+	.policy-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+	}
+	
+	.policy-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.policy-number {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.policy-status {
+		font-size: 14px;
+		padding: 2px 8px;
+		border-radius: 10px;
+	}
+	
+	.status-active {
+		background-color: #E6F7FF;
+		color: #1890FF;
+	}
+	
+	.status-expiring {
+		background-color: #FFF7E6;
+		color: #FA8C16;
+	}
+	
+	.status-expired {
+		background-color: #FFF1F0;
+		color: #F5222D;
+	}
+	
+	.policy-info {
+		flex-direction: column;
+		margin-bottom: 10px;
+	}
+	
+	.info-item {
+		flex-direction: row;
+		margin-bottom: 5px;
+	}
+	
+	.info-label {
+		font-size: 14px;
+		color: #999999;
+		width: 80px;
+	}
+	
+	.info-value {
+		font-size: 14px;
+		color: #333333;
+		flex: 1;
+	}
+	
+	.policy-footer {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding-top: 10px;
+		border-top-width: 1px;
+		border-top-color: #EEEEEE;
+	}
+	
+	.policy-date {
+		font-size: 12px;
+		color: #999999;
+	}
+	
+	.detail-btn {
+		background-color: #1E90FF;
+		border-radius: 15px;
+		font-size: 14px;
+	}
+	
+	/* 无数据提示 */
+	.empty-tip {
+		align-items: center;
+		justify-content: center;
+		padding: 50px 0;
+	}
+	
+	.empty-icon {
+		width: 60px;
+		height: 60px;
+		margin-bottom: 15px;
+		opacity: 0.5;
+	}
+	
+	.empty-text {
+		font-size: 14px;
+		color: #999999;
+	}
+</style>

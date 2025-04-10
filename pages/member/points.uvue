@@ -1,0 +1,494 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">积分商城</text>
+		</view>
+		
+		<!-- 积分信息卡片 -->
+		<view class="points-card">
+			<view class="points-info">
+				<text class="points-value">{{userInfo.points}}</text>
+				<text class="points-label">我的积分</text>
+			</view>
+			<view class="points-actions">
+				<view class="action-btn" @click="navigateTo('pointsHistory')">
+					<text class="action-text">积分明细</text>
+				</view>
+				<view class="action-btn" @click="navigateTo('pointsRules')">
+					<text class="action-text">积分规则</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 商品分类 -->
+		<view class="category-tabs">
+			<view 
+				class="category-tab" 
+				v-for="(category, index) in categories" 
+				:key="index"
+				:class="{active: currentCategory === index}"
+				@click="switchCategory(index)">
+				<text class="category-text">{{category.name}}</text>
+			</view>
+		</view>
+		
+		<!-- 商品列表 -->
+		<view class="product-list">
+			<view class="product-item" v-for="(product, index) in filteredProducts" :key="index" @click="showProductDetail(product)">
+				<image class="product-image" :src="product.image"></image>
+				<view class="product-info">
+					<text class="product-name">{{product.name}}</text>
+					<view class="product-price">
+						<text class="price-value">{{product.points}}</text>
+						<text class="price-unit">积分</text>
+					</view>
+					<view class="exchange-btn" @click.stop="exchangeProduct(product)">
+						<text class="exchange-text">立即兑换</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 商品详情弹窗 -->
+		<view class="product-detail-modal" v-if="showDetail">
+			<view class="modal-content">
+				<view class="modal-header">
+					<text class="modal-title">商品详情</text>
+					<text class="close-btn" @click="closeDetail">×</text>
+				</view>
+				<view class="modal-body">
+					<image class="detail-image" :src="currentProduct.image"></image>
+					<text class="detail-name">{{currentProduct.name}}</text>
+					<view class="detail-price">
+						<text class="detail-price-value">{{currentProduct.points}}</text>
+						<text class="detail-price-unit">积分</text>
+					</view>
+					<text class="detail-desc">{{currentProduct.description}}</text>
+					<view class="detail-stock">
+						<text class="stock-label">库存:</text>
+						<text class="stock-value">{{currentProduct.stock}}</text>
+					</view>
+					<view class="detail-btn" @click="exchangeProduct(currentProduct)">
+						<text class="detail-btn-text">立即兑换</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 兑换确认弹窗 -->
+		<view class="exchange-modal" v-if="showExchange">
+			<view class="modal-content">
+				<view class="modal-header">
+					<text class="modal-title">确认兑换</text>
+					<text class="close-btn" @click="closeExchange">×</text>
+				</view>
+				<view class="modal-body">
+					<text class="exchange-confirm-text">确定要兑换以下商品吗？</text>
+					<text class="exchange-product-name">{{currentProduct.name}}</text>
+					<view class="exchange-product-price">
+						<text class="exchange-price-value">{{currentProduct.points}}</text>
+						<text class="exchange-price-unit">积分</text>
+					</view>
+					<view class="exchange-actions">
+						<view class="exchange-cancel" @click="closeExchange">
+							<text class="exchange-cancel-text">取消</text>
+						</view>
+						<view class="exchange-confirm" @click="confirmExchange">
+							<text class="exchange-confirm-text">确认</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 兑换成功弹窗 -->
+		<view class="success-modal" v-if="showSuccess">
+			<view class="modal-content">
+				<view class="modal-body">
+					<image class="success-icon" src="/static/success.svg"></image>
+					<text class="success-text">兑换成功</text>
+					<text class="success-desc">您已成功兑换商品</text>
+					<view class="success-btn" @click="closeSuccess">
+						<text class="success-btn-text">确定</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '积分商城',
+				// 用户信息
+				userInfo: {
+					points: 0
+				},
+				// 商品分类
+				categories: [
+					{
+						name: '全部',
+						id: 'all'
+					},
+					{
+						name: '保险优惠',
+						id: 'insurance'
+					},
+					{
+						name: '实物礼品',
+						id: 'gift'
+					},
+					{
+						name: '服务特权',
+						id: 'service'
+					}
+				],
+				// 当前选中的分类
+				currentCategory: 0,
+				// 商品列表
+				products: [
+					{
+						id: 1,
+						name: '车险优惠券',
+						points: 500,
+						image: '/static/car_insurance.svg',
+						category: 'insurance',
+						stock: 99,
+						description: '兑换后可获得车险购买优惠券一张，可抵扣50元保费。'
+					},
+					{
+						id: 2,
+						name: '健康险优惠券',
+						points: 800,
+						image: '/static/health_insurance.svg',
+						category: 'insurance',
+						stock: 50,
+						description: '兑换后可获得健康险购买优惠券一张，可抵扣100元保费。'
+					},
+					{
+						id: 3,
+						name: '精美保温杯',
+						points: 1200,
+						image: '/static/points.svg',
+						category: 'gift',
+						stock: 30,
+						description: '高品质不锈钢保温杯，保温效果好，容量500ml。'
+					},
+					{
+						id: 4,
+						name: '团险优惠券',
+						points: 1000,
+						image: '/static/group_insurance.svg',
+						category: 'insurance',
+						stock: 40,
+						description: '兑换后可获得团险购买优惠券一张，可抵扣150元保费。'
+					},
+					{
+						id: 5,
+						name: '专属保险顾问服务',
+						points: 2000,
+						image: '/static/member_info.svg',
+						category: 'service',
+						stock: 20,
+						description: '兑换后可获得一次专属保险顾问服务，为您提供个性化保险方案。'
+					},
+					{
+						id: 6,
+						name: '品牌充电宝',
+						points: 1500,
+						image: '/static/points.svg',
+						category: 'gift',
+						stock: 25,
+						description: '10000mAh大容量充电宝，支持快充，轻薄便携。'
+					},
+					{
+						id: 7,
+						name: '理赔加急服务',
+						points: 1800,
+						image: '/static/member_info.svg',
+						category: 'service',
+						stock: 15,
+						description: '兑换后可获得一次理赔加急服务，优先处理您的理赔申请。'
+					},
+					{
+						id: 8,
+						name: '精美雨伞',
+						points: 1000,
+						image: '/static/points.svg',
+						category: 'gift',
+						stock: 35,
+						description: '防晒防雨双用伞，轻便折叠，方便携带。'
+					}
+				],
+				// 弹窗控制
+				showDetail: false,
+				showExchange: false,
+				showSuccess: false,
+				// 当前选中的商品
+				currentProduct: {}
+			}
+		},
+		computed: {
+			// 根据分类筛选商品
+			filteredProducts() {
+				if (this.currentCategory === 0) {
+					return this.products
+				} else {
+					const categoryId = this.categories[this.currentCategory].id
+					return this.products.filter(product => product.category === categoryId)
+				}
+			}
+		},
+		onLoad() {
+			console.log('积分商城页面加载')
+			// 加载用户信息
+			this.loadUserInfo()
+		},
+		methods: {
+			// 加载用户信息
+			loadUserInfo() {
+				// 从本地存储获取用户信息
+				try {
+					const userInfoStr = uni.getStorageSync('userInfo')
+					if (userInfoStr) {
+						const userInfo = JSON.parse(userInfoStr)
+						this.userInfo.points = userInfo.points || 0
+					}
+				} catch (e) {
+					console.error('获取用户信息失败', e)
+					// 使用默认数据
+					this.userInfo.points = 1250
+				}
+			},
+			
+			// 切换商品分类
+			switchCategory(index) {
+				this.currentCategory = index
+			},
+			
+			// 显示商品详情
+			showProductDetail(product) {
+				this.currentProduct = product
+				this.showDetail = true
+			},
+			
+			// 关闭商品详情
+			closeDetail() {
+				this.showDetail = false
+			},
+			
+			// 兑换商品
+			exchangeProduct(product) {
+				// 检查积分是否足够
+				if (this.userInfo.points < product.points) {
+					uni.showToast({
+						title: '积分不足',
+						icon: 'none'
+					})
+					return
+				}
+				
+				// 检查库存是否足够
+				if (product.stock <= 0) {
+					uni.showToast({
+						title: '商品库存不足',
+						icon: 'none'
+					})
+					return
+				}
+				
+				// 显示兑换确认弹窗
+				this.currentProduct = product
+				this.showExchange = true
+				// 关闭详情弹窗
+				this.showDetail = false
+			},
+			
+			// 关闭兑换确认弹窗
+			closeExchange() {
+				this.showExchange = false
+			},
+			
+			// 确认兑换
+			confirmExchange() {
+				// 扣除积分
+				this.userInfo.points -= this.currentProduct.points
+				
+				// 减少库存
+				const productIndex = this.products.findIndex(p => p.id === this.currentProduct.id)
+				if (productIndex !== -1) {
+					this.products[productIndex].stock--
+				}
+				
+				// 更新本地存储中的用户积分
+				try {
+					const userInfoStr = uni.getStorageSync('userInfo')
+					if (userInfoStr) {
+						const userInfo = JSON.parse(userInfoStr)
+						userInfo.points = this.userInfo.points
+						uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+					}
+				} catch (e) {
+					console.error('更新用户积分失败', e)
+				}
+				
+				// 关闭兑换确认弹窗
+				this.showExchange = false
+				
+				// 显示兑换成功弹窗
+				this.showSuccess = true
+			},
+			
+			// 关闭兑换成功弹窗
+			closeSuccess() {
+				this.showSuccess = false
+			},
+			
+			// 页面导航
+			navigateTo(type) {
+				// 页面路径映射
+				const pageMap = {
+					pointsHistory: '/pages/member/points-history',
+					pointsRules: '/pages/member/level'
+				}
+				
+				// 跳转到对应页面
+				if (pageMap[type]) {
+					uni.navigateTo({
+						url: pageMap[type],
+						success: () => {
+							console.log('跳转成功')
+						},
+						fail: (err) => {
+							console.error('跳转失败', err)
+							uni.showToast({
+								title: '页面跳转失败，请稍后再试',
+								icon: 'none',
+								duration: 2000
+							})
+						}
+					})
+				} else {
+					uni.showToast({
+						title: '页面开发中，敬请期待',
+						icon: 'none'
+					})
+				}
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		padding-bottom: 50px; /* 为底部导航栏留出空间 */
+		background-color: #F5F7FA;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 积分信息卡片 */
+	.points-card {
+		background-color: #FFFFFF;
+		margin: 15px;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+	
+	.points-info {
+		align-items: center;
+		margin-bottom: 15px;
+	}
+	
+	.points-value {
+		font-size: 36px;
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	.points-label {
+		font-size: 14px;
+		color: #666666;
+		margin-top: 5px;
+	}
+	
+	.points-actions {
+		flex-direction: row;
+		justify-content: space-around;
+	}
+	
+	.action-btn {
+		padding: 8px 15px;
+		background-color: #F0F8FF;
+		border-radius: 20px;
+		border-width: 1px;
+		border-color: #1E90FF;
+	}
+	
+	.action-text {
+		color: #1E90FF;
+		font-size: 14px;
+	}
+	
+	/* 商品分类 */
+	.category-tabs {
+		flex-direction: row;
+		background-color: #FFFFFF;
+		padding: 10px 15px;
+		margin-bottom: 10px;
+		justify-content: space-around;
+	}
+	
+	.category-tab {
+		padding: 8px 15px;
+		border-radius: 20px;
+		transition: all 0.3s;
+	}
+	
+	.category-tab.active {
+		background-color: #1E90FF;
+	}
+	
+	.category-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.category-tab.active .category-text {
+		color: #FFFFFF;
+		font-weight: bold;
+	}
+	
+	/* 商品列表 */
+	.product-list {
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		padding: 0 15px;
+	}
+	
+	.product-item {
+		width: 48%;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		margin-bottom: 15px;
+		overflow: hidden;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+		transition: all

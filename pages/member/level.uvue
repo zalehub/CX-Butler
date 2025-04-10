@@ -1,0 +1,427 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<text class="header-title">会员等级特权</text>
+		</view>
+		
+		<!-- 当前等级信息 -->
+		<view class="current-level-card">
+			<view class="level-header">
+				<text class="level-title">当前等级</text>
+				<text class="level-name">{{getLevelName(userInfo.level)}}</text>
+			</view>
+			<view class="level-progress">
+				<view class="progress-bar">
+					<view class="progress-fill" :style="{width: getProgressWidth()}"></view>
+				</view>
+				<view class="progress-text">
+					<text>{{userInfo.points}}积分</text>
+					<text v-if="getNextLevelPoints() > 0">距离下一等级还需{{getNextLevelPoints()}}积分</text>
+					<text v-else>已达到最高等级</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 等级特权列表 -->
+		<view class="level-list">
+			<view class="level-card" v-for="(level, index) in levels" :key="index" :class="{active: userInfo.level === index}">
+				<view class="level-card-header">
+					<text class="level-card-name">{{level.name}}</text>
+					<text class="level-card-points">{{level.minPoints}}积分</text>
+				</view>
+				<view class="level-card-content">
+					<view class="benefit-item" v-for="(benefit, bIndex) in level.benefits" :key="bIndex">
+						<text class="benefit-icon">✓</text>
+						<text class="benefit-text">{{benefit}}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 等级规则说明 -->
+		<view class="rules-section">
+			<text class="section-title">等级规则说明</text>
+			<view class="rules-content">
+				<text class="rule-item">1. 会员等级根据累计积分自动提升，积分可通过保险购买、推荐好友等方式获取。</text>
+				<text class="rule-item">2. 青铜会员：累计积分达到500分。</text>
+				<text class="rule-item">3. 白银会员：累计积分达到1000分。</text>
+				<text class="rule-item">4. 黄金会员：累计积分达到3000分。</text>
+				<text class="rule-item">5. 铂金会员：累计积分达到10000分。</text>
+				<text class="rule-item">6. 钻石会员：累计积分达到30000分。</text>
+				<text class="rule-item">7. 会员等级永久有效，不会因积分消耗而降级。</text>
+				<text class="rule-item">8. 本平台保留对会员等级规则的最终解释权。</text>
+			</view>
+		</view>
+		
+		<!-- 积分获取方式 -->
+		<view class="points-section">
+			<text class="section-title">积分获取方式</text>
+			<view class="points-content">
+				<view class="points-item">
+					<text class="points-item-title">保险购买</text>
+					<text class="points-item-desc">每消费1元获得1积分</text>
+				</view>
+				<view class="points-item">
+					<text class="points-item-title">推荐好友</text>
+					<text class="points-item-desc">每成功邀请1位好友获得100积分</text>
+				</view>
+				<view class="points-item">
+					<text class="points-item-title">好友消费</text>
+					<text class="points-item-desc">好友消费金额的5%转化为积分</text>
+				</view>
+				<view class="points-item">
+					<text class="points-item-title">每日签到</text>
+					<text class="points-item-desc">每日签到获得5积分，连续签到额外奖励</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '会员等级特权',
+				// 用户信息
+				userInfo: {
+					level: 0,
+					points: 0
+				},
+				// 等级配置
+				levels: [
+					{
+						name: '普通用户',
+						minPoints: 0,
+						benefits: [
+							'基础保险咨询服务',
+							'保险计算器使用权限',
+							'保单电子档案管理'
+						]
+					},
+					{
+						name: '青铜会员',
+						minPoints: 500,
+						benefits: [
+							'普通用户所有权益',
+							'保险产品9.8折优惠',
+							'专属客服通道',
+							'推荐佣金5%'
+						]
+					},
+					{
+						name: '白银会员',
+						minPoints: 1000,
+						benefits: [
+							'青铜会员所有权益',
+							'保险产品9.5折优惠',
+							'生日特别礼包',
+							'推荐佣金8%'
+						]
+					},
+					{
+						name: '黄金会员',
+						minPoints: 3000,
+						benefits: [
+							'白银会员所有权益',
+							'保险产品9折优惠',
+							'专属保险顾问服务',
+							'推荐佣金10%',
+							'季度健康咨询1次'
+						]
+					},
+					{
+						name: '铂金会员',
+						minPoints: 10000,
+						benefits: [
+							'黄金会员所有权益',
+							'保险产品8.5折优惠',
+							'理赔绿色通道',
+							'推荐佣金12%',
+							'月度健康咨询1次',
+							'年度体检优惠券'
+						]
+					},
+					{
+						name: '钻石会员',
+						minPoints: 30000,
+						benefits: [
+							'铂金会员所有权益',
+							'保险产品8折优惠',
+							'专属保险定制方案',
+							'推荐佣金15%',
+							'全年健康顾问服务',
+							'年度高端体检套餐',
+							'生日豪华礼包'
+						]
+					}
+				]
+			}
+		},
+		onLoad() {
+			console.log('会员等级页面加载')
+			// 加载用户信息
+			this.loadUserInfo()
+		},
+		methods: {
+			// 加载用户信息
+			loadUserInfo() {
+				// 从本地存储获取用户信息
+				try {
+					const userInfoStr = uni.getStorageSync('userInfo')
+					if (userInfoStr) {
+						const userInfo = JSON.parse(userInfoStr)
+						this.userInfo.level = userInfo.level || 0
+						this.userInfo.points = userInfo.points || 0
+					}
+				} catch (e) {
+					console.error('获取用户信息失败', e)
+					// 使用默认数据
+					this.userInfo = {
+						level: 2, // 默认白银会员
+						points: 1250
+					}
+				}
+			},
+			
+			// 获取等级名称
+			getLevelName(level) {
+				if (level >= 0 && level < this.levels.length) {
+					return this.levels[level].name
+				}
+				return '普通用户'
+			},
+			
+			// 获取进度条宽度
+			getProgressWidth() {
+				const currentLevel = this.userInfo.level
+				const currentPoints = this.userInfo.points
+				
+				// 如果是最高等级
+				if (currentLevel >= this.levels.length - 1) {
+					return '100%'
+				}
+				
+				// 当前等级所需积分
+				const currentLevelPoints = this.levels[currentLevel].minPoints
+				// 下一等级所需积分
+				const nextLevelPoints = this.levels[currentLevel + 1].minPoints
+				// 当前等级到下一等级的差值
+				const levelDiff = nextLevelPoints - currentLevelPoints
+				// 当前积分超出当前等级的部分
+				const pointsProgress = currentPoints - currentLevelPoints
+				
+				// 计算进度百分比
+				let progressPercent = (pointsProgress / levelDiff) * 100
+				// 限制在0-100之间
+				progressPercent = Math.min(100, Math.max(0, progressPercent))
+				
+				return progressPercent + '%'
+			},
+			
+			// 获取距离下一等级所需积分
+			getNextLevelPoints() {
+				const currentLevel = this.userInfo.level
+				const currentPoints = this.userInfo.points
+				
+				// 如果是最高等级
+				if (currentLevel >= this.levels.length - 1) {
+					return 0
+				}
+				
+				// 下一等级所需积分
+				const nextLevelPoints = this.levels[currentLevel + 1].minPoints
+				// 需要的额外积分
+				const neededPoints = nextLevelPoints - currentPoints
+				
+				return Math.max(0, neededPoints)
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 30px;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	/* 当前等级卡片 */
+	.current-level-card {
+		margin: 15px;
+		background-color: #1E90FF;
+		border-radius: 12px;
+		padding: 20px;
+		box-shadow: 0 4px 12px rgba(30,144,255,0.3);
+	}
+	
+	.level-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+	}
+	
+	.level-title {
+		color: #FFFFFF;
+		font-size: 16px;
+		opacity: 0.9;
+	}
+	
+	.level-name {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+	}
+	
+	.level-progress {
+		margin-top: 10px;
+	}
+	
+	.progress-bar {
+		height: 10px;
+		background-color: rgba(255,255,255,0.3);
+		border-radius: 5px;
+		overflow: hidden;
+		margin-bottom: 10px;
+	}
+	
+	.progress-fill {
+		height: 10px;
+		background-color: #FFD700;
+		border-radius: 5px;
+	}
+	
+	.progress-text {
+		flex-direction: row;
+		justify-content: space-between;
+	}
+	
+	.progress-text text {
+		color: #FFFFFF;
+		font-size: 12px;
+	}
+	
+	/* 等级列表 */
+	.level-list {
+		padding: 15px;
+	}
+	
+	.level-card {
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		margin-bottom: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		border-width: 1px;
+		border-color: #EEEEEE;
+	}
+	
+	.level-card.active {
+		border-color: #1E90FF;
+		border-width: 2px;
+		box-shadow: 0 4px 12px rgba(30,144,255,0.15);
+	}
+	
+	.level-card-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.level-card-name {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.level-card-points {
+		font-size: 14px;
+		color: #1E90FF;
+	}
+	
+	.level-card-content {
+		padding: 5px 0;
+	}
+	
+	.benefit-item {
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+	
+	.benefit-icon {
+		color: #1E90FF;
+		font-size: 14px;
+		margin-right: 8px;
+	}
+	
+	.benefit-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	/* 规则说明 */
+	.rules-section, .points-section {
+		margin: 15px;
+		background-color: #FFFFFF;
+		border-radius: 12px;
+		padding: 15px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	}
+	
+	.section-title {
+		font-size: 16px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 10px;
+	}
+	
+	.rules-content, .points-content {
+		padding: 5px 0;
+	}
+	
+	.rule-item {
+		font-size: 14px;
+		color: #666666;
+		line-height: 22px;
+		margin-bottom: 8px;
+	}
+	
+	/* 积分获取方式 */
+	.points-item {
+		margin-bottom: 12px;
+	}
+	
+	.points-item-title {
+		font-size: 14px;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.points-item-desc {
+		font-size: 14px;
+		color: #666666;
+	}
+</style>
