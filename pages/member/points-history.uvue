@@ -1,0 +1,309 @@
+<template>
+	<view class="container">
+		<!-- 顶部标题栏 -->
+		<view class="header">
+			<view class="back-btn" @click="goBack">
+				<text class="back-icon">←</text>
+			</view>
+			<text class="header-title">积分明细</text>
+		</view>
+		
+		<!-- 积分统计 -->
+		<view class="points-summary">
+			<text class="summary-title">当前积分</text>
+			<text class="summary-value">{{userInfo.points}}</text>
+		</view>
+		
+		<!-- 筛选选项 -->
+		<view class="filter-options">
+			<view class="filter-item" :class="{active: currentFilter === 'all'}" @click="switchFilter('all')">
+				<text class="filter-text">全部</text>
+			</view>
+			<view class="filter-item" :class="{active: currentFilter === 'income'}" @click="switchFilter('income')">
+				<text class="filter-text">收入</text>
+			</view>
+			<view class="filter-item" :class="{active: currentFilter === 'expense'}" @click="switchFilter('expense')">
+				<text class="filter-text">支出</text>
+			</view>
+		</view>
+		
+		<!-- 积分记录列表 -->
+		<view class="points-list">
+			<view v-if="filteredRecords.length === 0" class="empty-state">
+				<text class="empty-text">暂无积分记录</text>
+			</view>
+			
+			<view v-for="(record, index) in filteredRecords" :key="index" class="record-item">
+				<view class="record-left">
+					<text class="record-title">{{record.title}}</text>
+					<text class="record-time">{{record.time}}</text>
+				</view>
+				<view class="record-right">
+					<text class="record-amount" :class="{income: record.type === 'income', expense: record.type === 'expense'}">{{record.type === 'income' ? '+' : '-'}}{{record.amount}}</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				title: '积分明细',
+				// 用户信息
+				userInfo: {
+					points: 0
+				},
+				// 当前筛选
+				currentFilter: 'all',
+				// 积分记录
+				records: [
+					{
+						id: 1,
+						title: '购买车险',
+						time: '2023-12-15 14:30',
+						amount: 200,
+						type: 'income'
+					},
+					{
+						id: 2,
+						title: '兑换保温杯',
+						time: '2023-12-10 09:15',
+						amount: 1200,
+						type: 'expense'
+					},
+					{
+						id: 3,
+						title: '邀请好友',
+						time: '2023-12-05 16:45',
+						amount: 100,
+						type: 'income'
+					},
+					{
+						id: 4,
+						title: '签到奖励',
+						time: '2023-12-01 08:30',
+						amount: 10,
+						type: 'income'
+					},
+					{
+						id: 5,
+						title: '购买健康险',
+						time: '2023-11-25 11:20',
+						amount: 300,
+						type: 'income'
+					}
+				]
+			}
+		},
+		computed: {
+			// 根据筛选条件过滤积分记录
+			filteredRecords() {
+				if (this.currentFilter === 'all') {
+					return this.records
+				} else {
+					return this.records.filter(record => record.type === this.currentFilter)
+				}
+			}
+		},
+		onLoad() {
+			console.log('积分明细页面加载')
+			// 加载用户信息
+			this.loadUserInfo()
+			// 加载积分记录
+			this.loadPointsRecords()
+		},
+		methods: {
+			// 加载用户信息
+			loadUserInfo() {
+				// 从本地存储获取用户信息
+				try {
+					const userInfoStr = uni.getStorageSync('userInfo')
+					if (userInfoStr) {
+						const userInfo = JSON.parse(userInfoStr)
+						this.userInfo.points = userInfo.points || 0
+					}
+				} catch (e) {
+					console.error('获取用户信息失败', e)
+					// 使用默认数据
+					this.userInfo.points = 1250
+					// 显示错误提示
+					uni.showToast({
+						title: '加载用户信息失败，请重试',
+						icon: 'none',
+						duration: 2000
+					})
+				}
+			},
+			
+			// 加载积分记录
+			loadPointsRecords() {
+				// 实际应用中应该从API获取数据
+				// 这里使用模拟数据，已在data中定义
+				console.log('加载积分记录')
+				
+				// 模拟网络请求
+				setTimeout(() => {
+					// 如果需要，可以在这里更新records数据
+				}, 500)
+			},
+			
+			// 切换筛选条件
+			switchFilter(filter) {
+				this.currentFilter = filter
+			},
+			
+			// 返回上一页
+			goBack() {
+				uni.navigateBack()
+			}
+		}
+	}
+</script>
+
+<style>
+	.container {
+		flex-direction: column;
+		background-color: #F5F7FA;
+		padding-bottom: 20px;
+	}
+	
+	/* 顶部标题栏 */
+	.header {
+		height: 50px;
+		background-color: #1E90FF;
+		flex-direction: row;
+		align-items: center;
+		padding: 0 15px;
+	}
+	
+	.back-btn {
+		width: 30px;
+		height: 30px;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.back-icon {
+		color: #FFFFFF;
+		font-size: 20px;
+	}
+	
+	.header-title {
+		color: #FFFFFF;
+		font-size: 18px;
+		font-weight: bold;
+		flex: 1;
+		text-align: center;
+		margin-right: 30px; /* 为了平衡左侧返回按钮的宽度 */
+	}
+	
+	/* 积分统计 */
+	.points-summary {
+		background-color: #FFFFFF;
+		padding: 20px;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+	
+	.summary-title {
+		font-size: 14px;
+		color: #666666;
+		margin-bottom: 10px;
+	}
+	
+	.summary-value {
+		font-size: 30px;
+		color: #333333;
+		font-weight: bold;
+	}
+	
+	/* 筛选选项 */
+	.filter-options {
+		flex-direction: row;
+		background-color: #FFFFFF;
+		padding: 10px 0;
+		margin-bottom: 10px;
+	}
+	
+	.filter-item {
+		flex: 1;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 0;
+		border-bottom-width: 2px;
+		border-bottom-color: transparent;
+	}
+	
+	.filter-item.active {
+		border-bottom-color: #1E90FF;
+	}
+	
+	.filter-text {
+		font-size: 14px;
+		color: #666666;
+	}
+	
+	.filter-item.active .filter-text {
+		color: #1E90FF;
+		font-weight: bold;
+	}
+	
+	/* 积分记录列表 */
+	.points-list {
+		background-color: #FFFFFF;
+		padding: 0 15px;
+	}
+	
+	.empty-state {
+		padding: 50px 0;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.empty-text {
+		color: #999999;
+		font-size: 14px;
+	}
+	
+	.record-item {
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 15px 0;
+		border-bottom-width: 1px;
+		border-bottom-color: #EEEEEE;
+	}
+	
+	.record-left {
+		flex-direction: column;
+	}
+	
+	.record-title {
+		font-size: 14px;
+		color: #333333;
+		margin-bottom: 5px;
+	}
+	
+	.record-time {
+		font-size: 12px;
+		color: #999999;
+	}
+	
+	.record-right {
+		justify-content: center;
+	}
+	
+	.record-amount {
+		font-size: 16px;
+		font-weight: bold;
+	}
+	
+	.record-amount.income {
+		color: #FF6B00;
+	}
+	
+	.record-amount.expense {
+		color: #1E90FF;
+	}
+</style>

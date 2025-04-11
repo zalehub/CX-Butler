@@ -3,6 +3,31 @@
 	export default {
 		onLaunch: function () {
 			console.log('App Launch')
+			// 设置全局编码为UTF-8
+			uni.setStorageSync('appCharset', 'utf-8')
+			
+			// 设置全局的错误处理，防止乱码
+			uni.onError((err) => {
+				console.error('应用全局错误：', err)
+				// 可以在这里添加全局错误处理逻辑
+			})
+			
+			// 设置网络请求拦截器，确保正确处理字符编码
+			uni.addInterceptor('request', {
+				invokeStart: (options) => {
+					if (!options.header) {
+						options.header = {}
+					}
+					if (!options.header['Content-Type']) {
+						options.header['Content-Type'] = 'application/json; charset=UTF-8'
+					}
+					return options
+				},
+				invokeFail: (err) => {
+					console.error('网络请求错误：', err)
+					return err
+				}
+			})
 		},
 		onShow: function () {
 			console.log('App Show')
